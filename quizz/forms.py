@@ -1,5 +1,5 @@
 from django import forms
-from .models import Books,Product,Content,ProductRequest,Profile,ProductGroup
+from .models import Books,Product,Content,ProductRequest,Profile,ProductGroup,AssignedUsersGroup
 
 # forms.form
 class AddForm(forms.ModelForm):
@@ -36,6 +36,11 @@ class ProfileForm(forms.ModelForm):
 class GroupForm(forms.ModelForm):
     class Meta:
         model = ProductGroup
+        fields = '__all__'
+
+class AssignedGroupForm(forms.ModelForm):
+    class Meta:
+        model = AssignedUsersGroup
         fields = '__all__'
 
 

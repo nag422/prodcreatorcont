@@ -1,6 +1,6 @@
 from django.shortcuts import render,get_object_or_404
 from django.http import HttpResponse,JsonResponse
-from .models import Profile,Books,Content,ProductGroup,Likedproducts,Boughtedproducts
+from .models import Profile,Books,Content,ProductGroup,Likedproducts,Boughtedproducts,AssignedUsersGroup
 from django.contrib.auth.models import User
 from django.views.generic.base import TemplateView,RedirectView
 from django.views.generic.detail import DetailView
@@ -358,6 +358,53 @@ def createGroup(request):
     }
     return JsonResponse(response)
 
+    
+
+@csrf_exempt
+def assignedtogroup(request):
+    group = []
+    error =False
+    message=''
+    status=0
+    dataresp = request.POST
+
+    itemlist = (request.POST.get('itemlist')).split(',')    
+    if itemlist is not None:
+        for items in itemlist:
+            try:
+                AssignedUsersGroup.objects.get(user=int(items),groupid=dataresp.get('groupname')).delete()
+            except Exception as e:
+                if item is not None and dataresp.get('groupname') is not None:
+
+                    AssignedUsersGroup(user=int(items),groupid=dataresp.get('groupname')).save()
+
+                    message = 'Success'
+                    status=200
+
+                message = 'Failed'
+                status=400
+            
+            
+
+    
+    
+        
+            
+            
+    else:
+        error =True
+        message = 'Something is went wrong'
+        status=400        
+
+        
+
+    response = {
+        'error':error,
+        'message':message,
+        'status':status
+    }
+    return JsonResponse(response)
+
 @csrf_exempt
 def getAllgroups(request):
     groups = []
@@ -420,6 +467,37 @@ def addboughtproduct(request):
     
     return JsonResponse(context)
 
+@csrf_exempt
+def productstatus(request):
+    postid = request.POST.get('id')
+    action = request.POST.get('action')
+    status = 200
+    message = ""
+    error = ""
+    print(postid,action)
+    try:
+        instance = Content.objects.get(id=int(postid))
+        if action == 'instock':
+            instance.in_stock = False if instance.in_stock else True
+            instance.save()
+            print('saved')
+            
+        elif action == 'isactive':    
+            instance.is_active = False if instance.is_active else True
+            isactive = instance.save()
+    except Exception as e:
+        status = 400
+        message = "Something is Went Wrong"
+        error = str(e)
+        print(e)
+
+        
+    context = {
+        'status':status,
+        'message':message,
+        'error':error
+    }        
+    return JsonResponse(context)        
 
 
 
@@ -438,3 +516,6 @@ def getProductswithlikes(request):
             print('someork')
          
     return HttpResponse('done') 
+
+
+    

@@ -26,7 +26,7 @@ from django.db import connection
 from .forms import RegistrationForm, UserEditForm
 from django.views.decorators.csrf import ensure_csrf_cookie, csrf_protect,csrf_exempt
 from .utils import DatabaseDynamic
-from quizz.models import Profile
+from quizz.models import Profile,AssignedUsersGroup,ProductGroup
 
 def account_register(request):
     if request.user.is_authenticated:
@@ -126,7 +126,7 @@ def saveUser(request):
     else:
           
         try:
-            posts = User.objects.select_related().all()
+            posts = User.objects.all()
         except Exception as e:
             pass
             print(e)    
@@ -134,8 +134,15 @@ def saveUser(request):
 
         for i in posts.values():
             try:
-                userinstance=Profile.objects.get(user_ptr=i['id'])            
-                i.update({'content':userinstance.content,'user_ptr':userinstance.user_ptr_id})
+                userinstance=Profile.objects.get(user_ptr=i['id'])    
+                try:
+                    grp = AssignedUsersGroup.objects.get(user=i['id'])
+                    productinstance = ProductGroup.objects.filter(id=grp.groupid).first()
+                    i.update({'content':userinstance.content,'user_ptr':userinstance.user_ptr_id,'group':productinstance.groupname})
+                    print('grop find')
+                except:
+                    print(userinstance.user_ptr_id)
+                    i.update({'content':userinstance.content,'user_ptr':userinstance.user_ptr_id})
             except:
                 pass
             GETmethodData.append(i)

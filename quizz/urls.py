@@ -28,11 +28,14 @@ urlpatterns = [
     path('admin/creategroup/',views.createGroup,name='createGroup'),
     path('admin/getallgroups/',views.getAllgroups,name='getAllgroups'),
 
+    path('admin/assignedtogroup/',views.assignedtogroup,name='assignedtogroup'),
+
     # path('admin/getallprodlikes/',views.getProductswithlikes,name='getProductswithlikes'),
     path('admin/addliketoproduct/',views.addliketoproduct,name='addliketoproduct'),
     path('admin/addboughtproduct/',views.addboughtproduct,name='addboughtproduct'),
     path('admin/getproductsallbagged/',views.getProductsallbagged,name='getProductsallbagged'),
     path('admin/getproductsallliked/',views.getProductsallliked,name='getProductsallliked'),
+    path('admin/productstatus/',views.productstatus,name='productstatus'),
 
 
     
