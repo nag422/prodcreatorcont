@@ -12,6 +12,8 @@ urlpatterns = [
     path('admin/getsingleuser/',views.getsingleUser, name="getsingleUser"),
     path('admin/deleteusers/',views.deleteUsers, name="deleteUsers"),
 
+    path('admin/userupdate/',views.updateUser, name="updateUser"),
+
     
 
     # path('login/', auth_views.LoginView.as_view(template_name='account/registration/login.html',

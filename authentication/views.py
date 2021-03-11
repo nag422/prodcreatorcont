@@ -208,5 +208,48 @@ def deleteUsers(request):
     return JsonResponse(response)
 
 
+@csrf_exempt
+def updateUser(request):    
+    error=False
+    message=''
+    user_id=''
+    status = 0
 
-          
+    userid = request.POST.get('id')
+    usertype = request.POST.get('role')
+    usercategory = request.POST.get('category')
+    useraction = request.POST.get('action')
+
+    userinstance = User.objects.get(id=int(userid))
+    if userinstance is not None:
+        Profile.objects.filter(user_ptr=userinstance.id).update(content=usercategory)
+        if str(usertype) == "user":
+            userinstance.is_superuser = False
+            userinstance.is_staff= False
+            userinstance.is_active= True
+            userinstance.save()
+
+                
+        elif str(usertype) == "admin":
+            userinstance.is_superuser = False
+            userinstance.is_staff= True
+            userinstance.is_active= True
+            userinstance.save()
+        elif str(usertype) == "superuser":
+            userinstance.is_superuser = True
+            userinstance.is_staff= True
+            userinstance.is_active= True
+            userinstance.save()
+        message="Successfully User Changed"
+        status = 200
+    else:
+        message="Something is went wrong"
+        status = 400
+
+            
+    response={
+            'error':error,
+            'message':message,
+            'status':status
+            }
+    return JsonResponse(response)
