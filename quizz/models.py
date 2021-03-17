@@ -11,7 +11,9 @@ class Profile(models.Model):
         on_delete=models.CASCADE,
         primary_key=True,
     )
-    content = models.TextField()    
+    content = models.TextField() 
+    phone = models.TextField()
+    
 
     def __str__(self):
         return self.content

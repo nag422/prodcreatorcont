@@ -39,6 +39,8 @@ INSTALLED_APPS = [
     'allauth.socialaccount.providers.github',
     'allauth.socialaccount.providers.google',
     'allauth.socialaccount.providers.twitter',
+
+    'django_extensions'
 ]
 
 MIDDLEWARE = [
@@ -220,3 +222,9 @@ SOCIALACCOUNT_PROVIDERS = {
 SITE_ID = 1
 LOGIN_REDIRECT_URL = '/admin'
 SOCIALACCOUNT_AUTO_SIGNUP = True
+
+
+GRAPH_MODELS = {
+    'all_applications':True,
+    'group_models':True
+}

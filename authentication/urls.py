@@ -8,6 +8,7 @@ urlpatterns = [
 
     path('signup/', views.account_register, name='register'),
     path('activate/<slug:uidb64>/<slug:token>)/', views.account_activate, name='activate'),
+
     path('admin/saveuser/',views.saveUser, name="saveuser"),
     path('admin/getsingleuser/',views.getsingleUser, name="getsingleUser"),
     path('admin/deleteusers/',views.deleteUsers, name="deleteUsers"),
@@ -35,6 +36,11 @@ urlpatterns = [
     # path('password_reset_confirm/Mg/password_reset_complete/',
     #      TemplateView.as_view(template_name="account/user/reset_status.html"), name='password_reset_complete'),
 
+    # FrontEnd Auth
+    path('registeruser/', views.authRegisteraccount, name='authRegisteraccount'),
+    path('registervalidation/', views.authRegistervalidation, name='authRegistervalidation'),
+
+    
     # Dashboard
     path('profile/edit/', views.edit_details, name='edit_details'),
     path('profile/delete_user/', views.delete_user, name='delete_user'),

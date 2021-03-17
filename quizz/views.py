@@ -23,6 +23,7 @@ def get_random_code():
 
 def quiz(request):
     return render(request,'base.html')
+    
 def profile(request):
     data = Profile.objects.all()
     for i in data:

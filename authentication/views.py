@@ -19,7 +19,7 @@ from django.contrib.sites.shortcuts import get_current_site
 from django.template.loader import render_to_string
 from django.utils.encoding import force_bytes, force_text
 from django.utils.http import urlsafe_base64_decode, urlsafe_base64_encode
-from django.http import JsonResponse
+from django.http import JsonResponse,HttpResponse
 from django.contrib.auth.models import User
 from django.contrib.auth.decorators import login_required
 from django.db import connection
@@ -90,6 +90,66 @@ def delete_user(request):
     return redirect('account:delete_confirmation')
 
 # Admin Block
+
+@csrf_exempt
+def authRegistervalidation(request):
+    status = 0
+    message = ""
+    action = request.POST.get('action')
+    if action == "username":
+        username = str(request.POST.get('value'))
+        message = User.objects.filter(username = (username).lower()).exists()
+        status = 200
+    elif action == "email":
+        email = request.POST.get('value')
+        message = User.objects.filter(email = (email).lower()).exists()
+        status = 200  
+    
+
+    
+   
+    context = {
+        "message":message,
+        "status":status,
+        "action":action
+    }
+    return JsonResponse(context)
+@csrf_exempt
+def authRegisteraccount(request):
+
+    status = 0
+    message = ""
+    
+    first_name = request.POST.get('first_name','')
+    last_name = request.POST.get('last_name','')
+    username = request.POST.get('username')
+    email = request.POST.get('email')
+    password = request.POST.get('password')
+    phone = request.POST.get('phone')
+    category = request.POST.get('category')
+    
+
+    registeruser=User.objects.create_user(
+        username=username.lower(),is_active=True,password=password,
+        first_name=first_name.lower(),last_name=last_name.lower())
+    
+    user_id = registeruser.id
+    try:
+        if user_id > 0:
+            Profile.objects.create(user_ptr=User.objects.get(id=int(user_id)),content=category,phone=phone)
+            message = "Successfully Registered"
+            status = 200
+            
+    except Exception as e:
+        print(e)
+
+    context = {
+        "message":message,
+        "status":status
+    }
+    return JsonResponse(context)
+
+
 @csrf_exempt
 def saveUser(request):
     error=False
@@ -104,11 +164,11 @@ def saveUser(request):
         category=request.POST['usercategory']
         
         if str(usertype) == "user":
-            user_admin=User.objects.create_user(username=username,is_active=True,password=password)
+            user_admin=User.objects.create_user(username=username.lower(),is_active=True,password=password)
         elif str(usertype) == "admin":
-            user_admin=User.objects.create_superuser(username=username,is_active=True,is_staff=True,password=password)
+            user_admin=User.objects.create_superuser(username=username.lower(),is_active=True,is_staff=True,password=password)
         elif str(usertype) == "superuser":
-            user_admin=User.objects.create_user(username=username,is_active=True,is_staff=True,password=password,is_superuser=True)
+            user_admin=User.objects.create_user(username=username.lower(),is_active=True,is_staff=True,password=password,is_superuser=True)
         try:
             user_id = user_admin.id
             print(user_admin)
@@ -139,9 +199,9 @@ def saveUser(request):
                     grp = AssignedUsersGroup.objects.get(user=i['id'])
                     productinstance = ProductGroup.objects.filter(id=grp.groupid).first()
                     i.update({'content':userinstance.content,'user_ptr':userinstance.user_ptr_id,'group':productinstance.groupname})
-                    print('grop find')
+                    # print('grop find')
                 except:
-                    print(userinstance.user_ptr_id)
+                    # print(userinstance.user_ptr_id)
                     i.update({'content':userinstance.content,'user_ptr':userinstance.user_ptr_id})
             except:
                 pass
