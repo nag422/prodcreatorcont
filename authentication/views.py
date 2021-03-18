@@ -13,6 +13,9 @@
 #         return login(request, user)
 
 '''
+
+import json
+
 from django.shortcuts import render,redirect,get_object_or_404
 from django.conf import settings
 from django.contrib.sites.shortcuts import get_current_site
@@ -21,7 +24,9 @@ from django.utils.encoding import force_bytes, force_text
 from django.utils.http import urlsafe_base64_decode, urlsafe_base64_encode
 from django.http import JsonResponse,HttpResponse
 from django.contrib.auth.models import User
+from django.contrib.auth import authenticate, login,logout
 from django.contrib.auth.decorators import login_required
+from django.views.decorators.http import require_POST
 from django.db import connection
 from .forms import RegistrationForm, UserEditForm
 from django.views.decorators.csrf import ensure_csrf_cookie, csrf_protect,csrf_exempt
@@ -90,16 +95,63 @@ def delete_user(request):
     return redirect('account:delete_confirmation')
 
 # Admin Block
+@csrf_exempt
+@require_POST
+def loginView(request):
+    status = 0
+    message = ""
+    data = json.loads(request.body)
+    username = data.get("username").strip()
+    password = data.get("password").strip()
+
+    if username is None or password is None:
+        status = 400
+        message = "Invalid Credentials"
+        return JsonResponse({"status":status,"message":message})
+    user = authenticate(username=username,password=password)
+    if user is None:
+        status = 400
+        message = "Invalid Credentials"
+        return JsonResponse({"status":status,"message":message})
+    login(request,user)
+    status = 200
+    message = "Successfully Authenticated"
+    print(status,message)
+    return JsonResponse({"status":status,"message":message})
+
+@csrf_exempt
+def WhoAmi(request):
+    status =200
+    message ="success"
+    # Profile.objects.filter(user_ptr=51)
+    data = json.loads(request.body)
+    print(data)
+    return JsonResponse({"status":status,"message":message})
+
+@csrf_exempt
+@require_POST
+def logoutView(request):
+    logout(request)
+    context = {
+        "message":"Successfully logout",
+        "status":200
+    }
+    return JsonResponse(context)
+
 
 @csrf_exempt
 def authRegistervalidation(request):
     status = 0
     message = ""
-    action = request.POST.get('action')
+    action = request.POST.get('action').strip()
     if action == "username":
-        username = str(request.POST.get('value'))
-        message = User.objects.filter(username = (username).lower()).exists()
-        status = 200
+        username = str(request.POST.get('value').strip())
+        if len(username) >=5:
+            message = User.objects.filter(username = (username).lower()).exists()
+            status = 200
+        else:
+            message = True
+            status = 400
     elif action == "email":
         email = request.POST.get('value')
         message = User.objects.filter(email = (email).lower()).exists()
@@ -120,13 +172,13 @@ def authRegisteraccount(request):
     status = 0
     message = ""
     
-    first_name = request.POST.get('first_name','')
-    last_name = request.POST.get('last_name','')
-    username = request.POST.get('username')
-    email = request.POST.get('email')
-    password = request.POST.get('password')
-    phone = request.POST.get('phone')
-    category = request.POST.get('category')
+    first_name = (request.POST.get('first_name','')).strip()
+    last_name = request.POST.get('last_name','').strip()
+    username = request.POST.get('username').strip()
+    email = request.POST.get('email').strip()
+    password = request.POST.get('password').strip()
+    phone = request.POST.get('phone').strip()
+    category = request.POST.get('category').strip()
     
 
     registeruser=User.objects.create_user(

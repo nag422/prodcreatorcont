@@ -4,9 +4,9 @@ from django.dispatch import receiver
 from quizz.models import Profile
 
 
-@receiver(post_save, sender=User)
-def post_save_create_profile(sender, instance, created,**kwargs):    
-    if created:
-        Profile.objects.create(user_ptr = instance,content="creator")
+# @receiver(post_save, sender=User)
+# def post_save_create_profile(sender, instance, created,**kwargs):    
+#     if created:
+#         Profile.objects.create(user_ptr = instance,content="creator")
 
 

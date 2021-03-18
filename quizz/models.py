@@ -12,7 +12,11 @@ class Profile(models.Model):
         primary_key=True,
     )
     content = models.TextField() 
-    phone = models.TextField()
+    address = models.CharField(max_length=300,blank=True)
+    postalcode = models.CharField(max_length=100,blank=True)
+    city = models.CharField(max_length=100,blank=True)
+    country = models.CharField(max_length=100,blank=True)
+    phone = models.CharField(max_length=100,blank=True)
     
 
     def __str__(self):

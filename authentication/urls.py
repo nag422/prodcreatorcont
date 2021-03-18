@@ -39,6 +39,10 @@ urlpatterns = [
     # FrontEnd Auth
     path('registeruser/', views.authRegisteraccount, name='authRegisteraccount'),
     path('registervalidation/', views.authRegistervalidation, name='authRegistervalidation'),
+    path('signinsave/', views.loginView, name='loginView'),
+    path('signout/', views.logoutView, name='logoutView'),
+
+    path('aboutme/', views.WhoAmi, name='WhoAmi'),
 
     
     # Dashboard
