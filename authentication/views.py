@@ -32,6 +32,7 @@ from .forms import RegistrationForm, UserEditForm
 from django.views.decorators.csrf import ensure_csrf_cookie, csrf_protect,csrf_exempt
 from .utils import DatabaseDynamic
 from quizz.models import Profile,AssignedUsersGroup,ProductGroup
+from .serializers import ProfileSerializer,UserSerializer,CustomUserSerializer
 
 def account_register(request):
     if request.user.is_authenticated:
@@ -123,10 +124,62 @@ def loginView(request):
 def WhoAmi(request):
     status =200
     message ="success"
-    # Profile.objects.filter(user_ptr=51)
+    response = []
     data = json.loads(request.body)
-    print(data)
-    return JsonResponse({"status":status,"message":message})
+
+    if data.get('action') == 'get':
+        instance = Profile.objects.filter(user_ptr=51).first()    
+        serializer = ProfileSerializer(instance)
+        response = serializer.data
+        print('trigging getprofile')
+
+
+    if data.get('action') == 'update':
+        instance = User.objects.filter(id=51).first()  
+        ser = (data.get('user')) 
+        serializerdata = {'first_name':ser.get('first_name',''),'last_name':ser.get('last_name',''),'email':ser.get('email','')} 
+        
+        serializer = CustomUserSerializer(instance, data=dict(serializerdata))
+        try:
+            if True:
+                response = serializer.update(instance, dict(serializerdata))
+                # response = serializer.save()
+            else:
+                print('seri not valid')
+        except Exception as e:
+            print('serial not valid')
+            print(e)
+        
+        print(response)
+    if data.get('action') == 'profileupdate':
+        instance = Profile.objects.filter(user_ptr=51).first()  
+        ser = (data.get('user')) 
+        serializerdata = {'address':ser.get('address',''),
+        'postalcode':ser.get('postalcode',''),'phone':ser.get('phone',''),
+        'city':ser.get('city',''),'country':ser.get('city','')
+        } 
+        
+        serializer = ProfileSerializer(instance, data=dict(serializerdata))
+        try:
+            if True:
+                response = serializer.update(instance, dict(serializerdata))
+                # response = serializer.save()
+            else:
+                print('seri not valid')
+        except Exception as e:
+            print('serial not valid')
+            print(e)
+        
+        print(response)
+    
+    context = {
+
+        'status':status,
+        'message':message,
+        'response':response
+    }
+
+    return JsonResponse(context)
 
 @csrf_exempt
 @require_POST
