@@ -170,3 +170,11 @@ class Boughtedproducts(models.Model):
     
     def __str__(self):
         return f"{self.user}-{self.post}-{self.updated}"
+
+class ProductAssigns(models.Model):
+    users=models.ManyToManyField(User, blank=True, related_name='user')
+    products=models.ForeignKey(Content, on_delete=models.CASCADE)
+    updated = models.DateTimeField(auto_now=True)
+    created = models.DateTimeField(auto_now_add=True)
+    def __str__(self):
+        return f"{self.users}--{self.products}"

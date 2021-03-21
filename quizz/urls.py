@@ -30,6 +30,10 @@ urlpatterns = [
 
     path('admin/assignedtogroup/',views.assignedtogroup,name='assignedtogroup'),
 
+
+    path('admin/getproductchip/', views.getProductChip, name='getProductChip'),
+    path('admin/saveproductsforusers/', views.UserProductSave, name='UserProductSave'),
+
     # path('admin/getallprodlikes/',views.getProductswithlikes,name='getProductswithlikes'),
     path('admin/addliketoproduct/',views.addliketoproduct,name='addliketoproduct'),
     path('admin/addboughtproduct/',views.addboughtproduct,name='addboughtproduct'),
@@ -37,6 +41,6 @@ urlpatterns = [
     path('admin/getproductsallliked/',views.getProductsallliked,name='getProductsallliked'),
     path('admin/productstatus/',views.productstatus,name='productstatus'),
 
-    path('admin/getproductchip/', views.getProductChip, name='getProductChip'),
+    
     
 ]

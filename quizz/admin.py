@@ -1,6 +1,6 @@
 from django.contrib import admin
 from . import models
-from quizz.models import (Profile,Books,Product,
+from quizz.models import (Profile,Books,Product,ProductAssigns,
 Content,ProductRequest,ProductGroup,Likedproducts,Boughtedproducts,AssignedUsersGroup)
 
 admin.site.register(Profile)
@@ -9,6 +9,7 @@ admin.site.register(ProductRequest)
 admin.site.register(Likedproducts)
 admin.site.register(Boughtedproducts)
 admin.site.register(AssignedUsersGroup)
+admin.site.register(ProductAssigns)
 
 
 

@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from quizz.models import Profile,Content
+from quizz.models import Profile,Content,ProductAssigns
 
 
 class ProductsSerializer(serializers.ModelSerializer):
@@ -10,3 +10,7 @@ class ProductsSerializer(serializers.ModelSerializer):
     def update(self,instance,validated_data):
         instance = self.Meta.model(**validated_data)
         instance.save()
+class ProductAssignsSerializer(serializers.ModelSerializer):
+    class Meta:
+        model=ProductAssigns
+        fields="__all__"

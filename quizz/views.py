@@ -1,6 +1,6 @@
 from django.shortcuts import render,get_object_or_404
 from django.http import HttpResponse,JsonResponse
-from .models import Profile,Books,Content,ProductGroup,Likedproducts,Boughtedproducts,AssignedUsersGroup
+from .models import Profile,Books,Content,ProductGroup,Likedproducts,Boughtedproducts,AssignedUsersGroup,ProductAssigns
 from django.contrib.auth.models import User
 from django.views.generic.base import TemplateView,RedirectView
 from django.views.generic.detail import DetailView
@@ -12,7 +12,7 @@ from .forms import AddForm,ProductForm,ProductRequestForm,GroupForm
 from django.views.decorators.csrf import ensure_csrf_cookie, csrf_protect,csrf_exempt
 import json
 from authentication.utils import DatabaseDynamic
-from .serializers import ProductsSerializer
+from .serializers import ProductsSerializer,ProductAssignsSerializer
 import uuid
 
 def get_random_code():
@@ -547,5 +547,39 @@ def getProductChip(request):
     }
     return JsonResponse(context)
 
-
+@csrf_exempt
+def UserProductSave(request):
+    status = 200
+    message = "suucess fully parsed"
+    products =[]
+    action = request.POST.get('action').strip()
+    userdata = request.POST.getlist('userdata')
+    productdata = request.POST.getlist('productdata')
     
+    for productid in (productdata[0].split(',')):
+
+        producttemp = Content.objects.get(pk=int(productid))
+        
+        productinstance = ProductAssigns.objects.filter(products=producttemp)
+        
+        if len(productinstance) == 0:
+            productsave = ProductAssigns(products=producttemp)
+            productsave.save()       
+    
+            for userid in (userdata[0].split(',')):
+                usertemp = User.objects.get(pk=int(userid))
+                productsave.users.add(usertemp)
+        else:
+            for userid in (userdata[0].split(',')):
+                usertemp = User.objects.get(pk=int(userid))
+                for iproduct in productinstance:
+                    iproduct.users.add(usertemp)
+
+    # print(userdata,productdata)
+
+    context = {
+        "message":message,
+        "status":status,
+        "action":action
+    }
+    return JsonResponse(context)
