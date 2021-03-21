@@ -12,7 +12,7 @@ from .forms import AddForm,ProductForm,ProductRequestForm,GroupForm
 from django.views.decorators.csrf import ensure_csrf_cookie, csrf_protect,csrf_exempt
 import json
 from authentication.utils import DatabaseDynamic
-
+from .serializers import ProductsSerializer
 import uuid
 
 def get_random_code():
@@ -517,6 +517,35 @@ def getProductswithlikes(request):
             print('someork')
          
     return HttpResponse('done') 
+
+
+@csrf_exempt
+def getProductChip(request):
+    status = 0
+    message = ""
+    products =[]
+    action = request.POST.get('action').strip()
+    if action == "getproduct":
+        title = str(request.POST.get('value').strip())
+        if len(title) >0:
+            
+            productinstance = Content.objects.filter(title__icontains = (title))
+            
+            serializer = ProductsSerializer(productinstance,many=True)
+            products = (serializer.data)
+            
+            status = 200
+        else:
+            message = True
+            status = 400
+ 
+    context = {
+        "products":products,
+        "message":message,
+        "status":status,
+        "action":action
+    }
+    return JsonResponse(context)
 
 
     

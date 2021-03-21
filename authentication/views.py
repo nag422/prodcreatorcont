@@ -219,6 +219,40 @@ def authRegistervalidation(request):
         "action":action
     }
     return JsonResponse(context)
+
+@csrf_exempt
+def authChipUserGet(request):
+    status = 0
+    message = ""
+    users =[]
+    action = request.POST.get('action').strip()
+    if action == "Getusername":
+        username = str(request.POST.get('value').strip())
+        if len(username) >0:
+            print('im printing')
+            userinstance = User.objects.filter(username__contains = (username).lower())
+            serializer = UserSerializer(userinstance,many=True)
+            users = (serializer.data)
+            status = 200
+        else:
+            message = True
+            status = 400
+    elif action == "email":
+        email = request.POST.get('value')
+        message = User.objects.filter(email = (email).lower()).exists()
+        status = 200  
+    
+
+    context = {
+        "users":users,
+        "message":message,
+        "status":status,
+        "action":action
+    }
+    return JsonResponse(context)
+
+
+
 @csrf_exempt
 def authRegisteraccount(request):
 

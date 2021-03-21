@@ -43,6 +43,9 @@ urlpatterns = [
     path('signout/', views.logoutView, name='logoutView'),
 
     path('aboutme/', views.WhoAmi, name='WhoAmi'),
+    path('getuserchip/', views.authChipUserGet, name='authChipUserGet'),
+    
+    
 
     
     # Dashboard

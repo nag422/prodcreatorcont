@@ -37,6 +37,6 @@ urlpatterns = [
     path('admin/getproductsallliked/',views.getProductsallliked,name='getProductsallliked'),
     path('admin/productstatus/',views.productstatus,name='productstatus'),
 
-
+    path('admin/getproductchip/', views.getProductChip, name='getProductChip'),
     
 ]
