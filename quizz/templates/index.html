@@ -17,20 +17,30 @@
       rel="stylesheet"
     />
     <title>React App</title>
-    <link href="/static/build/static/css/main.df0b1890.chunk.css" rel="stylesheet" />
+    <style>
+      ::-webkit-scrollbar {
+        width: 6px;
+      }
+      ::-webkit-scrollbar-track {
+        box-shadow: inset 0 0 2px #7773732e;
+        border-radius: 3px;
+      }
+      ::-webkit-scrollbar-thumb {
+        background: #7773732e;
+        border-radius: 3px;
+      }
+      ::-webkit-scrollbar-thumb:hover {
+        background: #034078;
+      }
+    </style>
+    <link href="/static/css/main.df0b1890.chunk.css" rel="stylesheet" />
   </head>
   <body>
+  {% csrf_token %}
     <noscript>You need to enable JavaScript to run this app.</noscript>
     <div id="root"></div>
-    <script type="application/javascript">
-      "serviceWorker" in navigator &&
-        window.addEventListener("load", () => {
-          navigator.serviceWorker
-            .register("./serviceworker.js")
-            .then((e) => console.log("success", e.scope))
-            .catch((e) => console.log("fail", e));
-        });
-    </script>
+    
+    <script type="application/javascript"></script>
     <script>
       !(function (e) {
         function t(t) {
@@ -88,7 +98,7 @@
                     "static/js/" +
                     ({}[e] || e) +
                     "." +
-                    { 3: "64a03f44" }[e] +
+                    { 3: "4fa57dee" }[e] +
                     ".chunk.js"
                   );
                 })(e));
@@ -181,7 +191,7 @@
         r();
       })([]);
     </script>
-    <script src="/static/build/static/js/2.b2f3c95e.chunk.js"></script>
-    <script src="/static/build/static/js/main.6c6815bb.chunk.js"></script>
+    <script src="/static/js/2.4da9ed4e.chunk.js"></script>
+    <script src="/static/js/main.3728a2a4.chunk.js"></script>
   </body>
 </html>

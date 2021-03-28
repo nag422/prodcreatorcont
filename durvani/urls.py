@@ -11,7 +11,8 @@ urlpatterns = [
     path('', include('quizz.urls',namespace="quizz")),  
     path('durvani/', include('blog.urls',namespace="blog")),  
 
-    path('auth/', include('authentication.urls',namespace='account'))
+    path('auth/', include('authentication.urls',namespace='account')),
 ]
 urlpatterns += static(settings.MEDIA_URL,document_root=settings.MEDIA_ROOT)
+# urlpatterns += static(settings.MEDIA_URL,document_root='static/static_cdn/build/'+settings.MEDIA_ROOT)
 urlpatterns += static(settings.STATIC_URL,document_root=settings.STATIC_ROOT)

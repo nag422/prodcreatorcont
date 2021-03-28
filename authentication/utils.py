@@ -20,3 +20,34 @@ class DatabaseDynamic():
         except Exception as e:
             print(e)
             return e
+
+class SessionHandle():
+    def __init__(self,request):
+        self.session = request.session
+        usersession = self.session.get('userinfo')
+        if 'userinfo' not in request.session:
+            usersession = self.session['userinfo'] = {}
+        self.usersession = usersession
+
+    def add(self,sessionobject):
+        """
+        Adding or Updating User Session
+
+        """
+        self.usersession = sessionobject
+        
+        self.save()
+
+    def __len__(self):
+        return len(self.usersession)        
+
+    def clear(self):
+        for _ in self.session.keys():
+            del self.session[_]
+        self.save()
+
+
+    def save(self):
+        self.session.modified = True
+
+

@@ -1,5 +1,6 @@
 from django.shortcuts import render,get_object_or_404
 from django.http import HttpResponse,JsonResponse
+from django.middleware.csrf import get_token
 from .models import Profile,Books,Content,ProductGroup,Likedproducts,Boughtedproducts,AssignedUsersGroup,ProductAssigns
 from django.contrib.auth.models import User
 from django.views.generic.base import TemplateView,RedirectView
@@ -8,17 +9,22 @@ from django.views.generic.list import ListView
 from django.views.generic.edit import FormView,CreateView,UpdateView
 from django.db.models import F
 from django.utils import timezone
+from django.core.paginator import Paginator
 from .forms import AddForm,ProductForm,ProductRequestForm,GroupForm
 from django.views.decorators.csrf import ensure_csrf_cookie, csrf_protect,csrf_exempt
 import json
 from authentication.utils import DatabaseDynamic
-from .serializers import ProductsSerializer,ProductAssignsSerializer
+from .serializers import ProductsSerializer,ProductAssignsSerializer,ProductGroupSerializer
 import uuid
 
 def get_random_code():
-    code = str(uuid.uuid4())[:8].replace('-', '').lower()
-   
+    code = str(uuid.uuid4())[:8].replace('-', '').lower()   
     return code
+@ensure_csrf_cookie
+def get_csrf(request):
+    response = JsonResponse({"Info": "Success - Set CSRF cookie"})
+    response["X-CSRFToken"] = get_token(request)
+    return response
 
 
 def quiz(request):
@@ -142,8 +148,13 @@ class AddEditView(UpdateView):
     success_url = '/books/'
 # in update view get_object rertrieves the data
 # in createview get_object = None
-
+@ensure_csrf_cookie
 def movieplex(request):
+    return render(request,'index.html')
+
+
+def movieplex2(request):
+    print(request.POST)
     return render(request,'index.html')
 
 '''
@@ -189,7 +200,7 @@ def basket_update(request):
         response = JsonResponse({'qty': basketqty, 'subtotal': baskettotal})
         return response
 
-
+# Backend
 # Product Save
 @csrf_exempt
 def save_product(request):
@@ -262,7 +273,38 @@ def getProductsall(request):
     product = []
     error=False,
     status=200
-    allobjects = (Content.objects.all().values())
+    try:
+        pageno = request.GET['page']
+        
+    except:
+        pageno = 0
+    allobjects = Content.objects.filter(is_active=True)[int(pageno):2]
+    
+    
+    for i in allobjects.values():
+        dt = Likedproducts.objects.filter(post=i['id']).exists()
+        df = Boughtedproducts.objects.filter(post=i['id']).exists()
+        
+        i['isliked'] = dt
+        i['isfavored'] = df
+        i['customauthor'] = (User.objects.get(pk=i['author_id']).username).capitalize()
+        
+        product.append(i)
+    
+    response = {
+        'obs':(product),
+        'status':200,
+        'error':error
+    }
+    return JsonResponse(response)
+
+@csrf_exempt
+def getProductsallbyGroups(request):
+    product = []
+    error=False,
+    status=200
+
+    allobjects = Content.objects.filter(is_active=True).values()
 
     
     for i in allobjects:
@@ -272,6 +314,33 @@ def getProductsall(request):
         i['isliked'] = dt
         i['isfavored'] = df
         product.append(i)
+    
+    response = {
+        'obs':(product),
+        'status':200,
+        'error':error
+    }
+    return JsonResponse(response)
+
+@csrf_exempt
+def getProductsallbyUsers(request):
+    product = []
+    error=False,
+    status=200
+
+    groupbyProducts = ProductGroup.objects.filter(id=2)
+    # print(groupbyProducts.get_products())
+    serializer = ProductGroupSerializer(groupbyProducts,many=True)
+    # print(serializer.data)
+    for i in serializer.data:
+        for j in i['products']:          
+
+            dt = Likedproducts.objects.filter(post=j['id']).exists()
+            df = Boughtedproducts.objects.filter(post=j['id']).exists()
+            
+            j['isliked'] = dt
+            j['isfavored'] = df
+            product.append(dict(j))
     
     response = {
         'obs':(product),
@@ -375,7 +444,7 @@ def assignedtogroup(request):
             try:
                 AssignedUsersGroup.objects.get(user=int(items),groupid=dataresp.get('groupname')).delete()
             except Exception as e:
-                if item is not None and dataresp.get('groupname') is not None:
+                if items is not None and dataresp.get('groupname') is not None:
 
                     AssignedUsersGroup(user=int(items),groupid=dataresp.get('groupname')).save()
 
@@ -412,11 +481,14 @@ def getAllgroups(request):
     error =False
     message=''
     status=200
-
+    
+    
     grps = ProductGroup.objects.all()
-
+    
     for every in grps.values():
         # every['_id'] = str(every['_id'])
+        totalusers = AssignedUsersGroup.objects.filter(groupid=int(every['id'])).count()
+        every['users'] = totalusers
         groups.append(every)
 
     context = {
@@ -583,3 +655,31 @@ def UserProductSave(request):
         "action":action
     }
     return JsonResponse(context)
+
+@csrf_exempt
+def GroupProductSave(request):
+    status = 200
+    message = "suucess fully parsed"
+    products =[]
+    action = request.POST.get('action').strip()
+    groupdata = request.POST.get('groupdata')
+    productdata = request.POST.getlist('productdata')
+    
+    
+
+    grouptemp = ProductGroup.objects.get(pk=int(groupdata))
+    
+  
+    for productid in (productdata[0].split(',')):
+        prodtemp = Content.objects.get(pk=int(productid))
+        grouptemp.products.add(prodtemp)
+  
+
+    # print(userdata,productdata)
+
+    context = {
+        "message":message,
+        "status":status,
+        "action":action
+    }
+    return JsonResponse(context)    

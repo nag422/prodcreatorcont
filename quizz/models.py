@@ -137,7 +137,12 @@ class ProductGroup(models.Model):
     id=models.AutoField(primary_key=True)
     groupname = models.CharField(max_length=255)
     rule = models.CharField(max_length=255)
+    products=models.ManyToManyField(Content, blank=True, related_name='products')
     
+    def get_products(self):
+        return self.products.all()
+    def num_products(self):
+        return self.products.all().count()        
 
     def __str__(self):
         return self.groupname

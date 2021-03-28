@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from quizz.models import Profile,Content,ProductAssigns
+from quizz.models import Profile,Content,ProductAssigns,ProductGroup
 
 
 class ProductsSerializer(serializers.ModelSerializer):
@@ -14,3 +14,10 @@ class ProductAssignsSerializer(serializers.ModelSerializer):
     class Meta:
         model=ProductAssigns
         fields="__all__"
+
+class ProductGroupSerializer(serializers.ModelSerializer):
+    products = ProductsSerializer(many=True)
+    class Meta:
+        model=ProductGroup
+        fields=["id","groupname","rule","products"]
+        depth = 2

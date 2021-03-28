@@ -30,9 +30,12 @@ from django.views.decorators.http import require_POST
 from django.db import connection
 from .forms import RegistrationForm, UserEditForm
 from django.views.decorators.csrf import ensure_csrf_cookie, csrf_protect,csrf_exempt
-from .utils import DatabaseDynamic
+from .utils import DatabaseDynamic,SessionHandle
 from quizz.models import Profile,AssignedUsersGroup,ProductGroup
 from .serializers import ProfileSerializer,UserSerializer,CustomUserSerializer
+from rest_framework import permissions
+from rest_framework.views import APIView
+from django.utils.decorators import method_decorator
 
 def account_register(request):
     if request.user.is_authenticated:
@@ -96,42 +99,91 @@ def delete_user(request):
     return redirect('account:delete_confirmation')
 
 # Admin Block
-@csrf_exempt
-@require_POST
-def loginView(request):
-    status = 0
-    message = ""
-    data = json.loads(request.body)
-    username = data.get("username").strip()
-    password = data.get("password").strip()
 
-    if username is None or password is None:
-        status = 400
-        message = "Invalid Credentials"
+@method_decorator(csrf_exempt, name='dispatch')
+class loginView(APIView):
+    permission_classes = (permissions.AllowAny, )
+    
+    # def post(self, request, format=None):
+    #     data = self.request.data
+    #     print(data)
+    #     return JsonResponse({ 'error': 'Something went wrong when logging in' })
+
+    def post(self,request,format=None):
+        sessionhandle = SessionHandle(request)
+        status = 0
+        message = ""
+        data = json.loads(request.body)
+        username = data.get("username").strip()
+        password = data.get("password").strip()
+
+        if username is None or password is None:
+            status = 400
+            message = "Invalid Credentials"
+            return JsonResponse({"status":status,"message":message})
+        user = authenticate(username=username,password=password)
+        if user is None:
+            status = 400
+            message = "Invalid Credentials"
+            return JsonResponse({"status":status,"message":message})
+        login(request,user)
+        if username=="nagendra":
+            sessionhandle.add({'is_Authenticated':True,'username':'nagendra',
+            'is_superuser':True,'is_staff':True,'is_active':True,
+            'email':'nagendrakumar422@gmail.com'
+            })
+        elif username=="trisha":
+            sessionhandle.add({'is_Authenticated':True,'username':'trisha',
+            'is_superuser':False,'is_staff':True,'is_active':True,
+            'email':'trishanarayan@yopmail.com','category':'producer'
+            })
+        else:
+            sessionhandle.add({'is_Authenticated':True,'username':'testing',
+            'is_superuser':False,'is_staff':True,'is_active':True,
+            'email':'testing@yopmail.com','category':'creator'
+            })
+
+        
+        print(sessionhandle.usersession['username'])
+        status = 200
+        message = "Successfully Authenticated"
+        
         return JsonResponse({"status":status,"message":message})
-    user = authenticate(username=username,password=password)
-    if user is None:
-        status = 400
-        message = "Invalid Credentials"
-        return JsonResponse({"status":status,"message":message})
-    login(request,user)
-    status = 200
-    message = "Successfully Authenticated"
-    print(status,message)
-    return JsonResponse({"status":status,"message":message})
 
 @csrf_exempt
 def WhoAmi(request):
+    sessionhandle = SessionHandle(request)
     status =200
     message ="success"
     response = []
     data = json.loads(request.body)
-
+    
     if data.get('action') == 'get':
         instance = Profile.objects.filter(user_ptr=51).first()    
         serializer = ProfileSerializer(instance)
-        response = serializer.data
+        response_original = serializer.data
+        # Dummy
+        username = "nagendra"
+        
+        if username=="nagendra":
+            response = ({'is_Authenticated':True,'username':'nagendra',
+            'is_superuser':True,'is_staff':True,'is_active':True,
+            'email':'nagendrakumar422@gmail.com'
+            })
+        elif username=="trisha":
+            response = ({'is_Authenticated':True,'username':'trisha',
+            'is_superuser':False,'is_staff':True,'is_active':True,
+            'email':'trishanarayan@yopmail.com','category':'producer'
+            })
+        else:
+            response = ({'is_Authenticated':True,'username':'testing',
+            'is_superuser':False,'is_staff':True,'is_active':True,
+            'email':'testing@yopmail.com','category':'creator'
+            })
+        # Dummy
+
         print('trigging getprofile')
+        
 
 
     if data.get('action') == 'update':
@@ -184,7 +236,10 @@ def WhoAmi(request):
 @csrf_exempt
 @require_POST
 def logoutView(request):
+    sessionhandle = SessionHandle(request)
     logout(request)
+    sessionhandle.clear()
+    print(sessionhandle.__len__())
     context = {
         "message":"Successfully logout",
         "status":200
@@ -299,6 +354,7 @@ def saveUser(request):
     if request.method == 'POST':
         username=request.POST['username']
         password=request.POST['password']
+        phone=request.POST['phone']
         usertype=request.POST['usertype']
         category=request.POST['usercategory']
         
@@ -314,7 +370,7 @@ def saveUser(request):
             print(user_id)
             if user_id > 0:
                 databaseDynamic = DatabaseDynamic(request)
-                thisdict = {'user_ptr_id':user_id,'content':category,'id':user_id}
+                thisdict = {'user_ptr_id':user_id,'content':category,'phone':phone,'id':user_id}
                 profileid = databaseDynamic.insertrecordtodb(catname='quizz_profile',thisdict=thisdict)
 
         except Exception as e:

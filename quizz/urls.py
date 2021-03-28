@@ -4,6 +4,7 @@ from django.views.generic import TemplateView,RedirectView
 
 app_name='quizz'
 urlpatterns = [
+    path('getcsrf/default/',views.get_csrf,name="csrf"),
     path('quiz/',views.quiz,name="quiz"),
     path('profile/',views.profile),
     path('ex1_templateview/',TemplateView.as_view(template_name="1templateview.html",extra_context={'title':'extracontext'})),
@@ -18,12 +19,17 @@ urlpatterns = [
     path('g/addcreate/form/', views.AddBookViewcreate.as_view(), name='addcreate'),
     path('g/addupdate/form/<slug:pk>', views.AddEditView.as_view(), name='addupdate'),
 
-    path('auth/signin',views.movieplex),
+    path('auth/signin/',views.movieplex),
+    path('auth/password_reset/',views.movieplex2),
     path('admin/contentrequest/',views.movieplex),
 
     path('admin/saveproduct/',views.save_product,name='saveproduct'),
     path('admin/requestsaveproduct/',views.requestsaveproduct,name='requestsaveproduct'),
     path('admin/getProductsall/',views.getProductsall,name='getProductsall'),
+    path('admin/getproductsallbyusers/',views.getProductsallbyUsers,name='getProductsallbyUsers'),
+
+
+    
     # Group
     path('admin/creategroup/',views.createGroup,name='createGroup'),
     path('admin/getallgroups/',views.getAllgroups,name='getAllgroups'),
@@ -33,6 +39,7 @@ urlpatterns = [
 
     path('admin/getproductchip/', views.getProductChip, name='getProductChip'),
     path('admin/saveproductsforusers/', views.UserProductSave, name='UserProductSave'),
+    path('admin/saveproductsforgroups/', views.GroupProductSave, name='GroupProductSave'),
 
     # path('admin/getallprodlikes/',views.getProductswithlikes,name='getProductswithlikes'),
     path('admin/addliketoproduct/',views.addliketoproduct,name='addliketoproduct'),
