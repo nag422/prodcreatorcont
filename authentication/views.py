@@ -36,6 +36,7 @@ from .serializers import ProfileSerializer,UserSerializer,CustomUserSerializer
 from rest_framework import permissions
 from rest_framework.views import APIView
 from django.utils.decorators import method_decorator
+from rest_framework.authtoken.models import Token
 
 def account_register(request):
     if request.user.is_authenticated:
@@ -110,10 +111,11 @@ class loginView(APIView):
     #     return JsonResponse({ 'error': 'Something went wrong when logging in' })
 
     def post(self,request,format=None):
-        sessionhandle = SessionHandle(request)
+        data = json.loads(request.body)
+        
         status = 0
         message = ""
-        data = json.loads(request.body)
+        
         username = data.get("username").strip()
         password = data.get("password").strip()
 
@@ -127,28 +129,16 @@ class loginView(APIView):
             message = "Invalid Credentials"
             return JsonResponse({"status":status,"message":message})
         login(request,user)
-        if username=="nagendra":
-            sessionhandle.add({'is_Authenticated':True,'username':'nagendra',
-            'is_superuser':True,'is_staff':True,'is_active':True,
-            'email':'nagendrakumar422@gmail.com'
-            })
-        elif username=="trisha":
-            sessionhandle.add({'is_Authenticated':True,'username':'trisha',
-            'is_superuser':False,'is_staff':True,'is_active':True,
-            'email':'trishanarayan@yopmail.com','category':'producer'
-            })
-        else:
-            sessionhandle.add({'is_Authenticated':True,'username':'testing',
-            'is_superuser':False,'is_staff':True,'is_active':True,
-            'email':'testing@yopmail.com','category':'creator'
-            })
 
-        
-        print(sessionhandle.usersession['username'])
+        instance = Profile.objects.filter(user_ptr=request.user.id).first()    
+        serializer = ProfileSerializer(instance)
+        response = serializer.data
+        token, created = Token.objects.get_or_create(user=request.user)
+        response['access_token'] = token.key
         status = 200
         message = "Successfully Authenticated"
         
-        return JsonResponse({"status":status,"message":message})
+        return JsonResponse({"status":status,"message":message,"response":response})
 
 @csrf_exempt
 def WhoAmi(request):
@@ -159,27 +149,29 @@ def WhoAmi(request):
     data = json.loads(request.body)
     
     if data.get('action') == 'get':
-        instance = Profile.objects.filter(user_ptr=51).first()    
+        instance = Profile.objects.filter(user_ptr=request.user.id).first()    
         serializer = ProfileSerializer(instance)
-        response_original = serializer.data
+        response = serializer.data
+        token, created = Token.objects.get_or_create(user=request.user)
+        response['access_token'] = token.key
         # Dummy
-        username = "nagendra"
+        # username = "nagendra"
         
-        if username=="nagendra":
-            response = ({'is_Authenticated':True,'username':'nagendra',
-            'is_superuser':True,'is_staff':True,'is_active':True,
-            'email':'nagendrakumar422@gmail.com'
-            })
-        elif username=="trisha":
-            response = ({'is_Authenticated':True,'username':'trisha',
-            'is_superuser':False,'is_staff':True,'is_active':True,
-            'email':'trishanarayan@yopmail.com','category':'producer'
-            })
-        else:
-            response = ({'is_Authenticated':True,'username':'testing',
-            'is_superuser':False,'is_staff':True,'is_active':True,
-            'email':'testing@yopmail.com','category':'creator'
-            })
+        # if username=="nagendra":
+        #     response = ({'is_Authenticated':True,'username':'nagendra',
+        #     'is_superuser':True,'is_staff':True,'is_active':True,
+        #     'email':'nagendrakumar422@gmail.com'
+        #     })
+        # elif username=="trisha":
+        #     response = ({'is_Authenticated':True,'username':'trisha',
+        #     'is_superuser':False,'is_staff':True,'is_active':True,
+        #     'email':'trishanarayan@yopmail.com','category':'producer'
+        #     })
+        # else:
+        #     response = ({'is_Authenticated':True,'username':'testing',
+        #     'is_superuser':False,'is_staff':True,'is_active':True,
+        #     'email':'testing@yopmail.com','category':'creator'
+        #     })
         # Dummy
 
         print('trigging getprofile')

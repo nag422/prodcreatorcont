@@ -19,7 +19,7 @@ urlpatterns = [
     path('g/addcreate/form/', views.AddBookViewcreate.as_view(), name='addcreate'),
     path('g/addupdate/form/<slug:pk>', views.AddEditView.as_view(), name='addupdate'),
 
-    path('auth/signin/',views.movieplex),
+    path('auth/signin',views.movieplex),
     path('auth/password_reset/',views.movieplex2),
     path('admin/contentrequest/',views.movieplex),
 

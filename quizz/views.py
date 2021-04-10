@@ -1,7 +1,7 @@
 from django.shortcuts import render,get_object_or_404
 from django.http import HttpResponse,JsonResponse
 from django.middleware.csrf import get_token
-from .models import Profile,Books,Content,ProductGroup,Likedproducts,Boughtedproducts,AssignedUsersGroup,ProductAssigns
+from quizz.models import Profile,Books,Content,ProductGroup,Likedproducts,Boughtedproducts,AssignedUsersGroup,ProductAssigns
 from django.contrib.auth.models import User
 from django.views.generic.base import TemplateView,RedirectView
 from django.views.generic.detail import DetailView
@@ -16,6 +16,9 @@ import json
 from authentication.utils import DatabaseDynamic
 from .serializers import ProductsSerializer,ProductAssignsSerializer,ProductGroupSerializer
 import uuid
+from rest_framework.decorators import api_view, schema,permission_classes
+from rest_framework.permissions import IsAuthenticated,AllowAny
+from rest_framework.response import Response
 
 def get_random_code():
     code = str(uuid.uuid4())[:8].replace('-', '').lower()   
@@ -28,7 +31,8 @@ def get_csrf(request):
 
 
 def quiz(request):
-    return render(request,'base.html')
+    return render(request,'index.html')
+    
     
 def profile(request):
     data = Profile.objects.all()
@@ -37,7 +41,8 @@ def profile(request):
     context = {
         'data':'i.content'
     }
-    return JsonResponse(context)
+    # return JsonResponse(context)
+    return render(request,'index.html')
 
 class Ex2View(TemplateView):
     template_name = "1templateview.html"
@@ -200,16 +205,31 @@ def basket_update(request):
         response = JsonResponse({'qty': basketqty, 'subtotal': baskettotal})
         return response
 
+
 # Backend
 # Product Save
-@csrf_exempt
+
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
 def save_product(request):
+    message = request.user.username
+    status = 200
+    error = False
+    return Response({'message':message,'status':status,'error':error})
+
+
+@api_view(['POST'])
+@permission_classes([AllowAny,])
+def save_productsing(request):
     message = ''
     status = ''
     error = ''
+    
     from django.template.defaultfilters import slugify
     request.POST._mutable = True
-    user_ptr = get_object_or_404(User, id=1)
+    user_ptr = get_object_or_404(User, id=request.user.id)
+    print('trigged productsave')
     if request.method == 'POST':
         slug = slugify(request.POST.get('title'))
         request.POST.update(author=user_ptr,slug=slug)
@@ -229,17 +249,17 @@ def save_product(request):
             ProductFormResponse.save()
             message = "Successfully saved"
             status= 200
-            return JsonResponse({'message':message,'status':status,'error':error})
+            return Response({'message':message,'status':status,'error':error})
         else:
             message = "Something Went Wrong or Check with your data"
             status= 400
             print(ProductFormResponse.errors)
-            return JsonResponse({'message':message,'status':status,'error':error})
+            return Response({'message':message,'status':status,'error':error})
     else:
         status= 403
         message = "Method is not Allowed"
         
-        return JsonResponse({'message':message,'status':status,'error':error})
+        return Response({'message':message,'status':status,'error':error})
 
 @csrf_exempt
 def requestsaveproduct(request):

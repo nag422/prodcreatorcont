@@ -28,6 +28,7 @@ INSTALLED_APPS = [
     'django.contrib.sites',
     'django.contrib.staticfiles',
     'rest_framework',
+    'rest_framework.authtoken',
     'authentication',
     'quizz',
 
@@ -142,12 +143,12 @@ REST_FRAMEWORK = {
         "rest_framework.permissions.DjangoModelPermissionsOrAnonReadOnly",
         # "rest_framework.permissions.AllowAny"
     ],
-    # 'DEFAULT_AUTHENTICATION_CLASSES': (
-    #     'rest_framework.authentication.BasicAuthentication',
-    #     # 'rest_framework_simplejwt.authentication.JWTAuthentication',
-    #     'rest_framework.authentication.SessionAuthentication',
-    #     # 'rest_framework.authentication.TokenAuthentication',
-    # ),
+    'DEFAULT_AUTHENTICATION_CLASSES': (
+        'rest_framework.authentication.BasicAuthentication',
+        # 'rest_framework_simplejwt.authentication.JWTAuthentication',
+        # 'rest_framework.authentication.SessionAuthentication',
+        'rest_framework.authentication.TokenAuthentication',
+    ),
     }
 
 
@@ -198,7 +199,7 @@ USE_TZ = True
 EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
 EMAIL_HOST = 'smtp.gmail.com'
 EMAIL_PORT = 587
-EMAIL_HOST_USER = 'nagendrakumar422@gmail.com'
+EMAIL_HOST_USER = '@gmail.com'
 EMAIL_HOST_PASSWORD = 'hfhbijolsbordwmk'
 EMAIL_USE_TLS = True
 
