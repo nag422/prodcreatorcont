@@ -88,7 +88,7 @@ DATABASES = {
     'ENGINE': 'djongo',
     'NAME': 'contentbondappdb',
     'USER': 'contentbondapp',
-    'PASSWORD': 'k#8Ned!Xak9KFgsbtC',
+    'PASSWORD': '',
     'HOST': 'localhost',
     'PORT': 27017,
     'AUTH_SOURCE': 'contentbondappdb',

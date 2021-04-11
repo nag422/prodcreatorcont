@@ -54,3 +54,4 @@ class SessionHandle():
 # SECRET_KEY = '&po3&kr8dbje7m-d^yi%5jdu0+go@i^51_*4yy_1u-n6qxr2%i'
 # EMAIL_HOST_USER = 'nagendumar@ymail.com'
 # EMAIL_HOST_PASSWORD = 'hfhbijolsbordwmk'
+# dbpwd = 'k#8Ned!Xak9KFgsbtC'
