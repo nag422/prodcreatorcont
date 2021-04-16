@@ -1,7 +1,7 @@
 from django.shortcuts import render,get_object_or_404
 from django.http import HttpResponse,JsonResponse
 from django.middleware.csrf import get_token
-from quizz.models import Profile,Books,Content,ProductGroup,Likedproducts,Boughtedproducts,AssignedUsersGroup,ProductAssigns
+from quizz.models import Profile,Books,Content,ProductGroup,Likedproducts,Boughtedproducts,AssignedUsersGroup,ProductAssigns,MessageInbox
 from django.contrib.auth.models import User
 from django.views.generic.base import TemplateView,RedirectView
 from django.views.generic.detail import DetailView
@@ -10,11 +10,12 @@ from django.views.generic.edit import FormView,CreateView,UpdateView
 from django.db.models import F
 from django.utils import timezone
 from django.core.paginator import Paginator
-from .forms import AddForm,ProductForm,ProductRequestForm,GroupForm
+from .forms import AddForm,ProductForm,ProductRequestForm,GroupForm,MessageInboxForm
 from django.views.decorators.csrf import ensure_csrf_cookie, csrf_protect,csrf_exempt
 import json
 from authentication.utils import DatabaseDynamic
-from .serializers import ProductsSerializer,ProductAssignsSerializer,ProductGroupSerializer
+from .serializers import ProductsSerializer,ProductAssignsSerializer,ProductGroupSerializer,MessageInboxSerializer
+from authentication.serializers import CustomUserSerializer
 import uuid
 from rest_framework.decorators import api_view, schema,permission_classes
 from rest_framework.permissions import IsAuthenticated,AllowAny
@@ -212,7 +213,7 @@ def basket_update(request):
 
 @api_view(['POST'])
 @permission_classes([IsAuthenticated])
-def save_product(request):
+def test_case(request):
     message = request.user.username
     status = 200
     error = False
@@ -221,11 +222,10 @@ def save_product(request):
 
 @api_view(['POST'])
 @permission_classes([AllowAny,])
-def save_productsing(request):
+def save_product(request):
     message = ''
     status = ''
     error = ''
-    
     from django.template.defaultfilters import slugify
     request.POST._mutable = True
     user_ptr = get_object_or_404(User, id=request.user.id)
@@ -255,6 +255,44 @@ def save_productsing(request):
             status= 400
             print(ProductFormResponse.errors)
             return Response({'message':message,'status':status,'error':error})
+
+    else:
+        status= 403
+        message = "Method is not Allowed"
+        
+        return Response({'message':message,'status':status,'error':error})
+
+@api_view(['POST'])
+@permission_classes([AllowAny,])
+def editProductSave(request):
+    message = ''
+    status = ''
+    error = ''
+
+    from django.template.defaultfilters import slugify
+    request.POST._mutable = True
+    user_ptr = get_object_or_404(User, id=request.user.id)
+
+
+    if request.method == "POST":
+        slug = slugify(request.POST.get('title'))
+        request.POST.update(author=user_ptr,slug=slug)
+        instance = Content.objects.get(id=int(39))
+        ProductFormResponse = ProductForm(request.POST or None,request.FILES or None, instance=instance)
+
+        print((request.FILES))
+
+        if ProductFormResponse.is_valid():
+            ProductFormResponse.save()
+            message = "Successfully saved"
+            status= 200
+            return Response({'message':message,'status':status,'error':error})
+        else:
+            message = "Something Went Wrong or Check with your data"
+            status= 400
+            print(ProductFormResponse.errors)
+            return Response({'message':message,'status':status,'error':error})
+    
     else:
         status= 403
         message = "Method is not Allowed"
@@ -298,7 +336,40 @@ def getProductsall(request):
         
     except:
         pageno = 0
-    allobjects = Content.objects.filter(is_active=True)[int(pageno):2]
+    # allobjects = Content.objects.filter(is_active=True)[int(pageno):2]
+    allobjects = Content.objects.filter(is_active=True)
+    
+    
+    for i in allobjects.values():
+        dt = Likedproducts.objects.filter(post=i['id']).exists()
+        df = Boughtedproducts.objects.filter(post=i['id']).exists()
+        
+        i['isliked'] = dt
+        i['isfavored'] = df
+        i['customauthor'] = (User.objects.get(pk=i['author_id']).username).capitalize()
+        
+        product.append(i)
+    
+    response = {
+        'obs':(product),
+        'status':200,
+        'error':error
+    }
+    return JsonResponse(response)
+
+# @csrf_exempt
+@api_view(['POST'])
+@permission_classes([AllowAny,])
+def getProductById(request):
+    product = []
+    error=False,
+    status=200
+    try:
+        data = json.loads(request.body)        
+    except:
+        data = {}
+    # allobjects = Content.objects.filter(is_active=True)[int(pageno):2]
+    allobjects = Content.objects.filter(id=int(data.get('productid')),is_active=True)
     
     
     for i in allobjects.values():
@@ -369,17 +440,21 @@ def getProductsallbyUsers(request):
     }
     return JsonResponse(response)
 
+
 @csrf_exempt
 def getProductsallliked(request):
     product = []
     error=False,
     status=200
-    allobjects = (Likedproducts.objects.all())
+    allobjects = Likedproducts.objects.all()
 
     
     for i in allobjects.values():        
         df = Content.objects.filter(id=i['post_id'])
         for every in df.values():
+            every['customauthor'] = User.objects.get(id=int(every['author_id'])).username
+            every['likedby'] = i['user_id']
+            every['likedbyname'] = User.objects.get(id=int(i['user_id'])).username
             product.append(every)
     
     response = {
@@ -388,6 +463,7 @@ def getProductsallliked(request):
         'error':error
     }
     return JsonResponse(response)
+
 
 @csrf_exempt
 def getProductsallbagged(request):
@@ -703,3 +779,46 @@ def GroupProductSave(request):
         "action":action
     }
     return JsonResponse(context)    
+
+
+@api_view(['POST','GET'])
+@permission_classes([AllowAny,])
+def MessageChatusers(request):
+    message = "Success"
+    status=200
+    users = User.objects.all()
+    serailizer = CustomUserSerializer(users,many=True)
+    context = {
+        'users':serailizer.data,
+        'message':message,
+        'status':status
+    }
+    return Response(context)
+
+@api_view(['POST','GET'])
+@permission_classes([AllowAny,])
+def MessageChatusers(request):
+    message = "Success"
+    status=200
+    if request.method == "POST":
+        request.POST._mutable = True
+        request.POST.update({'sender':request.user})
+        msgform = MessageInboxForm(request.POST)
+        if msgform.is_valid():
+            msgform.save()
+        else:
+            message = msgform.errors
+
+        context = {            
+            'message':message,
+            'status':status
+        }
+    if request.method == "GET":
+        messagesinstance = MessageInbox.objects.all()
+        serailizer = MessageInboxSerializer(messagesinstance,many=True)
+        context = {
+            'mesgs':serailizer.data,
+            'message':message,
+            'status':status
+        }
+    return Response(context)

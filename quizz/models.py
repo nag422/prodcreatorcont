@@ -189,3 +189,13 @@ class ProductAssigns(models.Model):
     created = models.DateTimeField(auto_now_add=True)
     def __str__(self):
         return f"{self.users}--{self.products}"
+
+class MessageInbox(models.Model):
+    sender=models.ForeignKey(User, blank=True, related_name='sender', on_delete=models.CASCADE)
+    msg=models.TextField()
+    category=models.CharField(max_length=255,blank=True)
+    updated = models.DateTimeField(auto_now=True)
+    created = models.DateTimeField(auto_now_add=True)
+    
+    def __str__(self):
+        return f"{self.sender}"

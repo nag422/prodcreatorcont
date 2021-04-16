@@ -24,9 +24,13 @@ urlpatterns = [
     path('admin/contentrequest/',views.movieplex),
 
     path('admin/saveproduct/',views.save_product,name='saveproduct'),
+    path('admin/editproductsave/',views.editProductSave,name='editproductsave'),
+    
     path('admin/requestsaveproduct/',views.requestsaveproduct,name='requestsaveproduct'),
     path('admin/getProductsall/',views.getProductsall,name='getProductsall'),
     path('admin/getproductsallbyusers/',views.getProductsallbyUsers,name='getProductsallbyUsers'),
+
+    path('admin/getproductbyid/',views.getProductById,name='getProductById'),
 
 
     
@@ -47,6 +51,12 @@ urlpatterns = [
     path('admin/getproductsallbagged/',views.getProductsallbagged,name='getProductsallbagged'),
     path('admin/getproductsallliked/',views.getProductsallliked,name='getProductsallliked'),
     path('admin/productstatus/',views.productstatus,name='productstatus'),
+
+
+    # Chat
+
+    path('admin/chat/users/',views.MessageChatusers,name='messageChatusers'),
+    path('admin/chat/savemessage/',views.MessageChatusers,name='savemessage'),
 
     
     

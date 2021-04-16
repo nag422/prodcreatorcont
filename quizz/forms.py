@@ -1,5 +1,5 @@
 from django import forms
-from .models import Books,Product,Content,ProductRequest,Profile,ProductGroup,AssignedUsersGroup
+from .models import Books,Product,Content,ProductRequest,Profile,ProductGroup,AssignedUsersGroup,MessageInbox
 
 # forms.form
 class AddForm(forms.ModelForm):
@@ -43,5 +43,7 @@ class AssignedGroupForm(forms.ModelForm):
         model = AssignedUsersGroup
         fields = '__all__'
 
-
-       
+class MessageInboxForm(forms.ModelForm):
+    class Meta:
+        model = MessageInbox
+        fields = '__all__'

@@ -34,9 +34,10 @@ class ProfileSerializer(serializers.ModelSerializer):
         fields = ('user_ptr','content','address','postalcode','city','country','phone',)
     def update(self,instance,validated_data):
         # instance = self.Meta.model(**validated_data)
-        instance.content = validated_data.get("content")
+        instance.phone = validated_data.get("phone")
         instance.address = validated_data.get("address")
         instance.postalcode = validated_data.get("postalcode")  
         instance.city = validated_data.get("city")
         instance.country = validated_data.get("country")
         instance.save()
+        return str(instance)

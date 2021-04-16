@@ -38,6 +38,10 @@ from rest_framework.views import APIView
 from django.utils.decorators import method_decorator
 from rest_framework.authtoken.models import Token
 
+from rest_framework.response import Response
+from rest_framework.decorators import api_view, schema,permission_classes
+from rest_framework.permissions import IsAuthenticated,AllowAny
+
 def account_register(request):
     if request.user.is_authenticated:
         return redirect('/admin')
@@ -140,7 +144,9 @@ class loginView(APIView):
         
         return JsonResponse({"status":status,"message":message,"response":response})
 
+
 @csrf_exempt
+
 def WhoAmi(request):
     sessionhandle = SessionHandle(request)
     status =200
@@ -174,12 +180,12 @@ def WhoAmi(request):
         #     })
         # Dummy
 
-        print('trigging getprofile')
+        # print('trigging getprofile')
         
 
 
     if data.get('action') == 'update':
-        instance = User.objects.filter(id=51).first()  
+        instance = User.objects.filter(id=request.user.id).first()  
         ser = (data.get('user')) 
         serializerdata = {'first_name':ser.get('first_name',''),'last_name':ser.get('last_name',''),'email':ser.get('email','')} 
         
@@ -189,18 +195,20 @@ def WhoAmi(request):
                 response = serializer.update(instance, dict(serializerdata))
                 # response = serializer.save()
             else:
-                print('seri not valid')
+                # print('seri not valid')
+                status =400
         except Exception as e:
-            print('serial not valid')
-            print(e)
+            # print('serial not valid')
+            # print(e)
+            status =400
         
-        print(response)
+        # print(response)
     if data.get('action') == 'profileupdate':
-        instance = Profile.objects.filter(user_ptr=51).first()  
+        instance = Profile.objects.filter(user_ptr=request.user.id).first()  
         ser = (data.get('user')) 
         serializerdata = {'address':ser.get('address',''),
         'postalcode':ser.get('postalcode',''),'phone':ser.get('phone',''),
-        'city':ser.get('city',''),'country':ser.get('city','')
+        'city':ser.get('city',''),'country':ser.get('country','')
         } 
         
         serializer = ProfileSerializer(instance, data=dict(serializerdata))
@@ -209,12 +217,14 @@ def WhoAmi(request):
                 response = serializer.update(instance, dict(serializerdata))
                 # response = serializer.save()
             else:
-                print('seri not valid')
+                # print('seri not valid')
+                status =400
         except Exception as e:
-            print('serial not valid')
-            print(e)
+            # print('serial not valid')
+            # print(e)
+            status =400
         
-        print(response)
+        # print(response)
     
     context = {
 

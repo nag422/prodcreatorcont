@@ -20,7 +20,7 @@ MONGO_URL = 'mongodb://localhost:27017/'
 # See https://docs.djangoproject.com/en/3.0/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = '&po3&kr8dbje7m-d^yi%5jdu0+go@i^51_*4yy_1u-n6qxr2%i'
+SECRET_KEY = ''
 
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
@@ -43,8 +43,7 @@ INSTALLED_APPS = [
     'rest_framework',
     'quizz',
     'authentication',
-    'rest_framework.authtoken',
-    'user_visit',
+    'rest_framework.authtoken'    
 ] 
 
 MIDDLEWARE = [
@@ -56,7 +55,6 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
-    'user_visit.middleware.UserVisitMiddleware',
 ]
 
 ROOT_URLCONF = 'movieproj.urls'
@@ -90,7 +88,7 @@ DATABASES = {
     'ENGINE': 'djongo',
     'NAME': 'contentbondappdb',
     'USER': 'contentbondapp',
-    'PASSWORD': 'k#8Ned!Xak9KFgsbtC',
+    'PASSWORD': '',
     'HOST': 'localhost',
     'PORT': 27017,
     'AUTH_SOURCE': 'contentbondappdb',
@@ -152,8 +150,8 @@ REST_FRAMEWORK = {
 EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
 EMAIL_HOST = 'smtp.gmail.com'
 EMAIL_PORT = 587
-EMAIL_HOST_USER = 'nagendrakumar422@gmail.com'
-EMAIL_HOST_PASSWORD = 'hfhbijolsbordwmk'
+EMAIL_HOST_USER = ''
+EMAIL_HOST_PASSWORD = ''
 EMAIL_USE_TLS = True
 
 # Internationalization
