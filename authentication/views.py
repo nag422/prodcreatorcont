@@ -42,6 +42,8 @@ from rest_framework.response import Response
 from rest_framework.decorators import api_view, schema,permission_classes
 from rest_framework.permissions import IsAuthenticated,AllowAny
 
+
+
 def account_register(request):
     if request.user.is_authenticated:
         return redirect('/admin')
@@ -236,6 +238,83 @@ def WhoAmi(request):
     return JsonResponse(context)
 
 @csrf_exempt
+
+def aboutmebyid(request):
+    
+    status =200
+    message ="success"
+    response = []
+    
+    data = request.GET
+    if data.get('action') == 'get':
+        instance = Profile.objects.filter(user_ptr=int(data.get('profileid'))).first()    
+        serializer = ProfileSerializer(instance)
+        response = serializer.data
+
+
+    context = {
+
+        'status':status,
+        'message':message,
+        'response':response
+    }
+
+    return JsonResponse(context)
+
+@csrf_exempt
+def WhoamiProfileUpdate(request):
+    status =200
+    message ="success"
+    response = []
+    if data.get('action') == 'update':
+        instance = User.objects.filter(id=int(data.get('profileid'))).first()  
+        ser = (data.get('user')) 
+        serializerdata = {'first_name':ser.get('first_name',''),'last_name':ser.get('last_name',''),'email':ser.get('email','')} 
+        
+        serializer = CustomUserSerializer(instance, data=dict(serializerdata))
+        try:
+            if True:
+                response = serializer.update(instance, dict(serializerdata))
+                # response = serializer.save()
+            else:
+                # print('seri not valid')
+                status =400
+        except Exception as e:
+            # print('serial not valid')
+            # print(e)
+            status =400
+        
+        # print(response)
+    if data.get('action') == 'profileupdate':
+        instance = Profile.objects.filter(user_ptr=int(data.get('profileid'))).first()  
+        ser = (data.get('user')) 
+        serializerdata = {'address':ser.get('address',''),
+        'postalcode':ser.get('postalcode',''),'phone':ser.get('phone',''),
+        'city':ser.get('city',''),'country':ser.get('country','')
+        } 
+        
+        serializer = ProfileSerializer(instance, data=dict(serializerdata))
+        try:
+            if True:
+                response = serializer.update(instance, dict(serializerdata))
+                # response = serializer.save()
+            else:
+                # print('seri not valid')
+                status =400
+        except Exception as e:
+            # print('serial not valid')
+            # print(e)
+            status =400
+    context = {
+
+        'status':status,
+        'message':message,
+        'response':response
+    }
+
+    return JsonResponse(context)
+
+@csrf_exempt
 @require_POST
 def logoutView(request):
     sessionhandle = SessionHandle(request)
@@ -335,6 +414,26 @@ def authRegisteraccount(request):
             Profile.objects.create(user_ptr=User.objects.get(id=int(user_id)),content=category,phone=phone)
             message = "Successfully Registered"
             status = 200
+
+
+            # Sending Email
+
+            current_site = get_current_site(request)
+
+            subject = "Activate your Account"
+            message = render_to_string(
+                "email/account_activation_email.html",
+                {
+                    "user": user,
+                    "domain": current_site.domain,
+                    "uid": urlsafe_base64_encode(force_bytes(user.pk)),
+                    "token": account_activation_token.make_token(user),
+                },
+            )
+            user.email_user(subject=subject, message=message)
+
+
+            # Sending Email
             
     except Exception as e:
         print(e)
@@ -510,3 +609,21 @@ def updateUser(request):
             'status':status
             }
     return JsonResponse(response)
+
+@csrf_exempt
+@api_view(['POST'])
+def UserUpdateActivate_Deactivate(request):
+    error=False
+    message=''
+    user_id=''
+    status = request.POST.get('status')
+    itemlist = (request.POST.get('itemlist')).split(',')    
+    if itemlist is not None:
+        instanceuser = User.objects.filter(id__in=itemlist).update(is_active = True if status == 'activate' else False)
+        
+    response={
+            'error':error,
+            'message':message,
+            'user_id':user_id
+            }
+    return Response(response)

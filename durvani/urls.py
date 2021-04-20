@@ -17,7 +17,7 @@ urlpatterns = [
 urlpatterns += static(settings.MEDIA_URL,document_root=settings.MEDIA_ROOT)
 # urlpatterns += static(settings.MEDIA_URL,document_root='static/static_cdn/build/'+settings.MEDIA_ROOT)
 urlpatterns += static(settings.STATIC_URL,document_root=settings.STATIC_ROOT)
-urlpatterns += [re_path(r'^.*\/', TemplateView.as_view(template_name='base.html'))] 
+# urlpatterns += [re_path(r'^.*\/', TemplateView.as_view(template_name='base.html'))] 
 
 admin.site.index_title="ContentBond"
 admin.site.site_header="The ContentBond Administration"

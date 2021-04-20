@@ -52,11 +52,22 @@ urlpatterns = [
     path('admin/getproductsallliked/',views.getProductsallliked,name='getProductsallliked'),
     path('admin/productstatus/',views.productstatus,name='productstatus'),
 
+    # Admin Copy paths
+    path('admin/getproductsalllikedbyid/',views.getProductsalllikedbyuserid,name='getProductsalllikedbyuserid'),
+    path('admin/getproductsallbaggedbyid/',views.getProductsallbaggedbyuserid,name='getProductsallbaggedbyuserid'),
+    path('admin/getproductsallbyusersbyid/',views.getProductsallbyUsersbyid,name='getProductsallbyUsersbyid'),
+    
+
 
     # Chat
 
     path('admin/chat/users/',views.MessageChatusers,name='messageChatusers'),
-    path('admin/chat/savemessage/',views.MessageChatusers,name='savemessage'),
+    path('admin/chat/savemessage/',views.MessageChatMessages,name='savemessage'),
+
+
+    # Dashboard
+
+    path('admin/dashboardview/',views.dashboardView,name='dashboardview')
 
     
     

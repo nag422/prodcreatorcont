@@ -1,6 +1,6 @@
 from django.urls import path
 from django.views.generic import TemplateView
-# from django.contrib.auth import views as auth_views
+from django.contrib.auth import views as auth_views
 # have to import forms for auth_views
 from . import views
 app_name="authentication"
@@ -23,10 +23,7 @@ urlpatterns = [
 
     # Reset password
 
-    # path('password_reset/', auth_views.PasswordResetView.as_view(template_name="account/user/password_reset_form.html",
-    #                                                              success_url='password_reset_email_confirm',
-    #                                                              email_template_name='account/user/password_reset_email.html',
-    #                                                              form_class=PwdResetForm), name='pwdreset'),
+    path('reset/', auth_views.PasswordResetView.as_view(), name='pwdreset'),
     # path('password_reset_confirm/<uidb64>/<token>', auth_views.PasswordResetConfirmView.as_view(template_name='account/user/password_reset_confirm.html',
     #                                                                                             success_url='password_reset_complete/',
     #                                                                                             form_class=PwdResetConfirmForm),
@@ -43,8 +40,10 @@ urlpatterns = [
     path('signout/', views.logoutView, name='logoutView'),
 
     path('aboutme/', views.WhoAmi, name='WhoAmi'),
+    path('aboutmebyid/', views.aboutmebyid, name='aboutmebyid'),
     path('getuserchip/', views.authChipUserGet, name='authChipUserGet'),
-    
+    path('whoamiprofileupdateid/', views.WhoamiProfileUpdate, name='WhoamiProfileUpdate'),
+    path('useractiveordeactivate/', views.UserUpdateActivate_Deactivate, name='userupdateactiveordeactivate'),
     
 
     

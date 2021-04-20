@@ -16,9 +16,10 @@ class CustomUserSerializer(serializers.ModelSerializer):
     first_name = serializers.EmailField(required=True)
     last_name = serializers.CharField(required=True)
     
+    
     class Meta:
         model = User
-        fields = ('email', 'first_name', 'last_name',)
+        fields = ('email', 'first_name', 'last_name','is_superuser',)
         # extra_kwargs = {'password': {'write_only': True}}
     def update(self,instance,validated_data):
         instance.email = validated_data.get("email")

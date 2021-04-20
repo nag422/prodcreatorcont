@@ -45,6 +45,26 @@ def profile(request):
     # return JsonResponse(context)
     return render(request,'index.html')
 
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def dashboardView(request):
+    sellers = Profile.objects.filter(content="creator").count()    
+    buyers = Profile.objects.filter(content="producer").count()  
+    enquiries = MessageInbox.objects.all().count()
+    leads = 0
+
+    context = {
+        'sellers':sellers,
+        'buyers':buyers,
+        'enquiries':enquiries,
+        'leads':leads
+
+
+    }
+    # return JsonResponse(context)
+    return Response(context)
+
+
 class Ex2View(TemplateView):
     template_name = "1templateview.html"
     # template_engine = ""
@@ -357,9 +377,9 @@ def getProductsall(request):
     }
     return JsonResponse(response)
 
-# @csrf_exempt
-@api_view(['POST'])
-@permission_classes([AllowAny,])
+@csrf_exempt
+# @api_view(['POST'])
+# @permission_classes([AllowAny,])
 def getProductById(request):
     product = []
     error=False,
@@ -385,7 +405,8 @@ def getProductById(request):
     response = {
         'obs':(product),
         'status':200,
-        'error':error
+        'error':error,
+        'user':str(request.user)
     }
     return JsonResponse(response)
 
@@ -439,7 +460,39 @@ def getProductsallbyUsers(request):
         'error':error
     }
     return JsonResponse(response)
+# Admin Copy
+@csrf_exempt
+def getProductsallbyUsersbyid(request):
+    product = []
+    error=False,
+    status=200
+    userid = request.GET.get('id')
+    pagenumber = request.GET.get('page')
 
+    # df = Content.objects.filter(id=i['post_id'])
+    #     for every in df.values():
+    
+    groupbyProducts = ProductAssigns.objects.filter(users__in=[int(userid)])
+    # print(groupbyProducts.get_products())
+    serializer = ProductAssignsSerializer(groupbyProducts,many=True)
+    # print(serializer.data)
+    for i in serializer.data:
+        contentvalues = Content.objects.filter(id=i['products'])
+        for j in contentvalues.values():          
+
+            dt = Likedproducts.objects.filter(post=j['id']).exists()
+            df = Boughtedproducts.objects.filter(post=j['id']).exists()
+            
+            j['isliked'] = dt
+            j['isfavored'] = df
+            product.append(dict(j))
+    
+    response = {
+        'obs':(product),
+        'status':200,
+        'error':error
+    }
+    return JsonResponse(response)
 
 @csrf_exempt
 def getProductsallliked(request):
@@ -447,6 +500,33 @@ def getProductsallliked(request):
     error=False,
     status=200
     allobjects = Likedproducts.objects.all()
+
+    
+    for i in allobjects.values():        
+        df = Content.objects.filter(id=i['post_id'])
+        for every in df.values():
+            every['customauthor'] = User.objects.get(id=int(every['author_id'])).username
+            every['likedby'] = i['user_id']
+            every['likedbyname'] = User.objects.get(id=int(i['user_id'])).username
+            product.append(every)
+    
+    response = {
+        'obs':(product),
+        'status':200,
+        'error':error
+    }
+    return JsonResponse(response)
+
+# Admin likedproducts
+@csrf_exempt
+def getProductsalllikedbyuserid(request):
+    product = []
+    error=False,
+    status=200
+    userid = request.GET.get('id')
+    pagenumber = request.GET.get('page')
+
+    allobjects = Likedproducts.objects.filter(user = int(userid))
 
     
     for i in allobjects.values():        
@@ -476,6 +556,36 @@ def getProductsallbagged(request):
     for i in allobjects.values():        
         df = Content.objects.filter(id=i['post_id'])
         for every in df.values():
+            every['customauthor'] = User.objects.get(id=int(every['author_id'])).username
+            every['likedby'] = i['user_id']
+            every['likedbyname'] = User.objects.get(id=int(i['user_id'])).username
+            product.append(every)
+
+
+    response = {
+        'obs':(product),
+        'status':200,
+        'error':error
+    }
+    return JsonResponse(response)
+
+# Admin baggedproducts
+@csrf_exempt
+def getProductsallbaggedbyuserid(request):
+    product = []
+    error=False,
+    status=200
+    userid = request.GET.get('id')
+    pagenumber = request.GET.get('page')
+    allobjects = (Boughtedproducts.objects.filter(user=int(userid)))
+
+    
+    for i in allobjects.values():        
+        df = Content.objects.filter(id=i['post_id'])
+        for every in df.values():
+            every['customauthor'] = User.objects.get(id=int(every['author_id'])).username
+            every['likedby'] = i['user_id']
+            every['likedbyname'] = User.objects.get(id=int(i['user_id'])).username
             product.append(every)
 
 
@@ -795,9 +905,9 @@ def MessageChatusers(request):
     }
     return Response(context)
 
-@api_view(['POST','GET'])
-@permission_classes([AllowAny,])
-def MessageChatusers(request):
+# @api_view(['POST','GET'])
+# @permission_classes([AllowAny,])
+def MessageChatMessages(request):
     message = "Success"
     status=200
     if request.method == "POST":
@@ -816,9 +926,34 @@ def MessageChatusers(request):
     if request.method == "GET":
         messagesinstance = MessageInbox.objects.all()
         serailizer = MessageInboxSerializer(messagesinstance,many=True)
+        
         context = {
             'mesgs':serailizer.data,
             'message':message,
             'status':status
         }
     return Response(context)
+    
+
+# @api_view(['POST','GET'])
+# @permission_classes([AllowAny,])
+# def MessageChatMessagesBulk(request):
+#     message = "Success"
+#     status=200
+#     if request.method == "POST":
+#         category = request.POST.get('category','creator')    
+#         itemlist = (request.POST.get('data')).split(',')    
+#         for i in itemlist:
+#         MessageInbox(sender=request.user,category=category)
+#         MessageInbox.save()
+
+#         if msgform.is_valid():
+#             msgform.save()
+#         else:
+#             message = msgform.errors
+
+#         context = {            
+#             'message':message,
+#             'status':status
+#         }
+#     return Response(context)
