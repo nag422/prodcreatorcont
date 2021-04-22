@@ -45,19 +45,28 @@ def profile(request):
     # return JsonResponse(context)
     return render(request,'index.html')
 
-@api_view(['GET'])
+@api_view(['GET','POST'])
 @permission_classes([IsAuthenticated])
 def dashboardView(request):
-    sellers = Profile.objects.filter(content="creator").count()    
-    buyers = Profile.objects.filter(content="producer").count()  
-    enquiries = MessageInbox.objects.all().count()
-    leads = 0
+    sellers = 0
+    buyers=0
+    enquiries=0
+    leads=0
+    error=""
+    try:
+        sellers = Profile.objects.filter(content="creator").count()    
+        buyers = Profile.objects.filter(content="producer").count()  
+        enquiries = MessageInbox.objects.all().count()
+        leads = 0
+    except Exception as e:
+        error = str(e)
 
     context = {
         'sellers':sellers,
         'buyers':buyers,
         'enquiries':enquiries,
-        'leads':leads
+        'leads':leads,
+        'error':error
 
 
     }
@@ -320,12 +329,14 @@ def editProductSave(request):
         return Response({'message':message,'status':status,'error':error})
 
 @csrf_exempt
+@api_view(['GET','POST'])
+# @ Buyer Accept
 def requestsaveproduct(request):
     message = ''
     status = ''
     error = ''
     request.POST._mutable = True
-    user_ptr = get_object_or_404(User, id=1)
+    user_ptr = get_object_or_404(User, id=request.user.id)
     if request.method == 'POST':
         request.POST.update(author=user_ptr)
         ProductFormResponse = ProductRequestForm(request.POST)
@@ -435,17 +446,19 @@ def getProductsallbyGroups(request):
     return JsonResponse(response)
 
 @csrf_exempt
+@api_view(['GET','POST'])
 def getProductsallbyUsers(request):
     product = []
     error=False,
     status=200
 
-    groupbyProducts = ProductGroup.objects.filter(id=2)
+    groupbyProducts = ProductAssigns.objects.filter(users__in=[int(request.user.id)])
     # print(groupbyProducts.get_products())
-    serializer = ProductGroupSerializer(groupbyProducts,many=True)
+    serializer = ProductAssignsSerializer(groupbyProducts,many=True)
     # print(serializer.data)
     for i in serializer.data:
-        for j in i['products']:          
+        contentvalues = Content.objects.filter(id=i['products'])
+        for j in contentvalues.values():          
 
             dt = Likedproducts.objects.filter(post=j['id']).exists()
             df = Boughtedproducts.objects.filter(post=j['id']).exists()
@@ -486,6 +499,40 @@ def getProductsallbyUsersbyid(request):
             j['isliked'] = dt
             j['isfavored'] = df
             product.append(dict(j))
+    
+    response = {
+        'obs':(product),
+        'status':200,
+        'error':error
+    }
+    return JsonResponse(response)
+
+
+@csrf_exempt
+def getUploadsallbyusersbyid(request):
+    product = []
+    error=False,
+    status=200
+    userid = request.GET.get('id')
+    pagenumber = request.GET.get('page')
+
+    # df = Content.objects.filter(id=i['post_id'])
+    #     for every in df.values():
+    
+    userUploads = Content.objects.filter(author=int(userid))
+    # print(groupbyProducts.get_products())
+    serializer = ProductsSerializer(userUploads,many=True)
+    # print(serializer.data)
+    for i in serializer.data:
+        # contentvalues = Content.objects.filter(id=i['products'])
+        # for j in contentvalues.values():          
+
+        #     dt = Likedproducts.objects.filter(post=j['id']).exists()
+        #     df = Boughtedproducts.objects.filter(post=j['id']).exists()
+            
+        #     j['isliked'] = dt
+        #     j['isfavored'] = df
+        product.append(dict(i))
     
     response = {
         'obs':(product),
@@ -637,6 +684,8 @@ def createGroup(request):
     
 
 @csrf_exempt
+@api_view(['GET','POST'])
+# @ Admin Access
 def assignedtogroup(request):
     group = []
     error =False
@@ -660,12 +709,7 @@ def assignedtogroup(request):
                 message = 'Failed'
                 status=400
             
-            
-
-    
-    
-        
-            
+                    
             
     else:
         error =True
@@ -704,6 +748,24 @@ def getAllgroups(request):
         'groups':groups
     }
     return JsonResponse(context)
+
+
+@csrf_exempt
+@api_view(['POST','GET'])
+# @ Admin Access
+def deleteGroups(request):
+    error=False
+    message=''
+    user_id=''
+    itemlist = (request.POST.get('itemlist')).split(',')    
+    if itemlist is not None:
+        ProductGroup.objects.filter(id__in=itemlist).delete()
+    response={
+            'error':error,
+            'message':message,
+            'user_id':user_id
+            }
+    return JsonResponse(response)
 
 @csrf_exempt
 def addliketoproduct(request):
@@ -826,32 +888,58 @@ def getProductChip(request):
     return JsonResponse(context)
 
 @csrf_exempt
+@api_view(['POST','GET'])
+# @ Admin Access
 def UserProductSave(request):
-    status = 200
+    status = 0
     message = "suucess fully parsed"
     products =[]
     action = request.POST.get('action').strip()
     userdata = request.POST.getlist('userdata')
     productdata = request.POST.getlist('productdata')
     
-    for productid in (productdata[0].split(',')):
 
-        producttemp = Content.objects.get(pk=int(productid))
-        
-        productinstance = ProductAssigns.objects.filter(products=producttemp)
-        
-        if len(productinstance) == 0:
-            productsave = ProductAssigns(products=producttemp)
-            productsave.save()       
-    
-            for userid in (userdata[0].split(',')):
-                usertemp = User.objects.get(pk=int(userid))
-                productsave.users.add(usertemp)
-        else:
-            for userid in (userdata[0].split(',')):
-                usertemp = User.objects.get(pk=int(userid))
-                for iproduct in productinstance:
-                    iproduct.users.add(usertemp)
+    if action == 'saveuserproducts':
+        for productid in (productdata[0].split(',')):
+
+            producttemp = Content.objects.get(pk=int(productid))
+            
+            productinstance = ProductAssigns.objects.filter(products=producttemp)
+            
+            if len(productinstance) == 0:
+                productsave = ProductAssigns(products=producttemp)
+                productsave.save()       
+                status = 200
+                message = "Successfully Created and Assigned"
+                for userid in (userdata[0].split(',')):
+                    usertemp = User.objects.get(pk=int(userid))
+                    productsave.users.add(usertemp)
+            else:
+                status = 200
+                message = "Successfully Assigned"
+                for userid in (userdata[0].split(',')):
+                    usertemp = User.objects.get(pk=int(userid))
+                    for iproduct in productinstance:
+                        iproduct.users.add(usertemp)
+    else:
+        for productid in (productdata[0].split(',')):
+
+            producttemp = Content.objects.get(pk=int(productid))
+            
+            productinstance = ProductAssigns.objects.filter(products=producttemp)
+            
+            if len(productinstance) >= 0:
+                status = 200
+                message = "Successfully DeAssigned"
+                for userid in (userdata[0].split(',')):
+                    usertemp = User.objects.get(pk=int(userid))
+                    for iproduct in productinstance:
+                        iproduct.users.remove(usertemp)
+            else:
+                status = 400
+                message = "Product is not Exist"
+                
+
 
     # print(userdata,productdata)
 
@@ -905,8 +993,9 @@ def MessageChatusers(request):
     }
     return Response(context)
 
-# @api_view(['POST','GET'])
-# @permission_classes([AllowAny,])
+@csrf_exempt
+@api_view(['POST','GET'])
+@permission_classes([AllowAny,])
 def MessageChatMessages(request):
     message = "Success"
     status=200

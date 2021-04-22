@@ -1,0 +1,12 @@
+TableMaterialuser.js
+Authntication app
+
+path('useractiveordeactivate/', views.UserUpdateActivate_Deactivate, name='userupdateactiveordeactivate'),
+path('admin/saveuser/',views.saveUser, name="saveuser"),
+path('admin/getsingleuser/',views.getsingleUser, name="getsingleUser"),
+path('useractiveordeactivate/', views.UserUpdateActivate_Deactivate, name='userupdateactiveordeactivate'),
+path('admin/deleteusers/',views.deleteUsers, name="deleteUsers"),
+
+
+>> container / api / userapi.js
+path('admin/userupdate/',views.updateUser, name="updateUser")

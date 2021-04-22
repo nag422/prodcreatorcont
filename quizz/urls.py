@@ -37,6 +37,10 @@ urlpatterns = [
     # Group
     path('admin/creategroup/',views.createGroup,name='createGroup'),
     path('admin/getallgroups/',views.getAllgroups,name='getAllgroups'),
+    path('admin/deletegroups/',views.deleteGroups,name='deleteGroups'),
+
+
+    
 
     path('admin/assignedtogroup/',views.assignedtogroup,name='assignedtogroup'),
 
@@ -56,6 +60,7 @@ urlpatterns = [
     path('admin/getproductsalllikedbyid/',views.getProductsalllikedbyuserid,name='getProductsalllikedbyuserid'),
     path('admin/getproductsallbaggedbyid/',views.getProductsallbaggedbyuserid,name='getProductsallbaggedbyuserid'),
     path('admin/getproductsallbyusersbyid/',views.getProductsallbyUsersbyid,name='getProductsallbyUsersbyid'),
+    path('admin/getuploadsallbyusersbyid/',views.getUploadsallbyusersbyid,name='getUploadsallbyusersbyid'),
     
 
 

@@ -148,20 +148,26 @@ class loginView(APIView):
 
 
 @csrf_exempt
-
+@api_view(['POST','GET'])
 def WhoAmi(request):
-    sessionhandle = SessionHandle(request)
+    # sessionhandle = SessionHandle(request)
     status =200
     message ="success"
     response = []
-    data = json.loads(request.body)
+    try:
+        data = json.loads(request.body)
+    except:
+        data = {'action':'errortrue'}
     
     if data.get('action') == 'get':
-        instance = Profile.objects.filter(user_ptr=request.user.id).first()    
-        serializer = ProfileSerializer(instance)
-        response = serializer.data
-        token, created = Token.objects.get_or_create(user=request.user)
-        response['access_token'] = token.key
+        try:
+            instance = Profile.objects.filter(user_ptr=request.user.id).first()    
+            serializer = ProfileSerializer(instance)
+            response = serializer.data
+            token, created = Token.objects.get_or_create(user=request.user)
+            response['access_token'] = token.key
+        except Exception as e:
+            response['access_token'] = str(e)
         # Dummy
         # username = "nagendra"
         
@@ -235,7 +241,7 @@ def WhoAmi(request):
         'response':response
     }
 
-    return JsonResponse(context)
+    return Response(context)
 
 @csrf_exempt
 
@@ -262,6 +268,8 @@ def aboutmebyid(request):
     return JsonResponse(context)
 
 @csrf_exempt
+@api_view(['POST','GET'])
+# @ Access Admin
 def WhoamiProfileUpdate(request):
     status =200
     message ="success"
@@ -446,6 +454,8 @@ def authRegisteraccount(request):
 
 
 @csrf_exempt
+@api_view(['POST','GET'])
+# @Admin Access
 def saveUser(request):
     error=False
     message=''
@@ -519,6 +529,7 @@ def saveUser(request):
              }
     return JsonResponse(response)
 
+@api_view(['POST','GET'])
 def getsingleUser(request):
     isquery = request.GET.get('username')
     error=False
@@ -549,6 +560,8 @@ def getsingleUser(request):
     return JsonResponse(response)
 
 @csrf_exempt
+@api_view(['POST','GET'])
+# @ Admin Access
 def deleteUsers(request):
     error=False
     message=''
@@ -564,7 +577,12 @@ def deleteUsers(request):
     return JsonResponse(response)
 
 
+
+
+
 @csrf_exempt
+@api_view(['POST','GET'])
+# @Admin Access
 def updateUser(request):    
     error=False
     message=''
