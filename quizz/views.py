@@ -1,7 +1,7 @@
 from django.shortcuts import render,get_object_or_404
 from django.http import HttpResponse,JsonResponse
 from django.middleware.csrf import get_token
-from quizz.models import Profile,Books,Content,ProductGroup,Likedproducts,Boughtedproducts,AssignedUsersGroup,ProductAssigns,MessageInbox
+from quizz.models import Profile,Books,Content,ProductGroup,Likedproducts,Boughtedproducts,AssignedUsersGroup,ProductAssigns,MessageInbox,ContentSaveNotifyer
 from django.contrib.auth.models import User
 from django.views.generic.base import TemplateView,RedirectView
 from django.views.generic.detail import DetailView
@@ -278,6 +278,8 @@ def save_product(request):
             ProductFormResponse.save()
             message = "Successfully saved"
             status= 200
+            ContentSaveNotifyer.objects.create(user=user_ptr,sender=request.user,receiver='buyer',
+            sendertype='seller',receivertype='buyer')
             return Response({'message':message,'status':status,'error':error})
         else:
             message = "Something Went Wrong or Check with your data"
@@ -950,6 +952,53 @@ def UserProductSave(request):
     }
     return JsonResponse(context)
 
+
+@api_view(['POST'])
+@permission_classes([AllowAny,])
+def save_product_by_admin(request):
+    message = ''
+    status = ''
+    error = ''
+    from django.template.defaultfilters import slugify
+    request.POST._mutable = True
+   
+    # print('trigged productsave')
+    if request.method == 'POST':
+        slug = slugify(request.POST.get('title'))
+        user_ptr = get_object_or_404(User, username=request.POST.get('user'))
+        request.POST.update(author=user_ptr,slug=slug)
+        ProductFormResponse = ProductForm(request.POST,request.FILES)
+                
+        # title = request.POST.get('title')
+        # slug = request.POST.get('title')
+        # description = request.POST.get('description')
+        # thumbnail = request.FILES['thumbnail']
+        # videofile =  request.FILES['videofile']
+        # rights = request.POST.get('rights')
+        # castncrew = request.POST.get('castncrew')
+        # price = int(request.POST.get('price'))
+        
+        
+        if ProductFormResponse.is_valid():
+            ProductFormResponse.save()
+            message = "Successfully saved"
+            status= 200
+            ContentSaveNotifyer.objects.create(user=user_ptr,sender=request.user,receiver='seller',
+            sendertype='superadmin',receivertype='seller')
+
+            return Response({'message':message,'status':status,'error':error})
+        else:
+            message = "Something Went Wrong or Check with your data"
+            status= 400
+            print(ProductFormResponse.errors)
+            return Response({'message':message,'status':status,'error':error})
+
+    else:
+        status= 403
+        message = "Method is not Allowed"
+        
+        return Response({'message':message,'status':status,'error':error})
+
 @csrf_exempt
 def GroupProductSave(request):
     status = 200
@@ -977,6 +1026,7 @@ def GroupProductSave(request):
         "action":action
     }
     return JsonResponse(context)    
+
 
 
 @api_view(['POST','GET'])

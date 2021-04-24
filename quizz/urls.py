@@ -24,6 +24,7 @@ urlpatterns = [
     path('admin/contentrequest/',views.movieplex),
 
     path('admin/saveproduct/',views.save_product,name='saveproduct'),
+    path('admin/saveproductbyadmin/',views.save_product_by_admin,name='saveproductadmin'),
     path('admin/editproductsave/',views.editProductSave,name='editproductsave'),
     
     path('admin/requestsaveproduct/',views.requestsaveproduct,name='requestsaveproduct'),

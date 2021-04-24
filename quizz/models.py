@@ -74,13 +74,27 @@ class Content(models.Model):
     title = models.CharField(max_length=255)
     slug = models.SlugField(max_length=255)
     description = models.TextField(blank=True)
+    rights = models.TextField(blank=True)
+
+    category = models.TextField(blank=True)
+    language = models.TextField(blank=True)
+    genre = models.TextField(blank=True)
+    keywords = models.TextField(blank=True)
+    country = models.TextField(blank=True)
+    rightsregion = models.TextField(blank=True)
+    termsconditions = models.TextField(blank=True)
+    runtime = models.TextField(blank=True)
+    numbofvideos = models.TextField(blank=True)
+
     thumbnail = models.ImageField(upload_to='images/', default='images/default.png')
     videofile =  models.FileField(upload_to='uploads/')
     thumbnail1 = models.ImageField(upload_to='images/', default='images/default.png')
     thumbnail2 = models.ImageField(upload_to='images/', default='images/default.png')
     thumbnail3 = models.ImageField(upload_to='images/', default='images/default.png')
-    rights = models.TextField(blank=True)
-    castncrew = models.TextField(blank=True)
+
+    # rights = models.TextField(blank=True)
+    # castncrew = models.TextField(blank=True)
+
     price = models.IntegerField(null = True, default =0)
     in_stock = models.BooleanField(default=True)
     is_active = models.BooleanField(default=True)
@@ -107,6 +121,27 @@ class Content(models.Model):
 
     def __str__(self):
         return self.title
+
+class ContentSaveNotifyer(models.Model):
+    user = models.CharField(max_length=255)
+    sender = models.CharField(max_length=255)
+    receiver = models.CharField(max_length=255)
+    sendertype = models.CharField(max_length=255)
+    receivertype = models.CharField(max_length=255)
+    isviewed = models.BooleanField(default=False)
+    created = models.DateTimeField(auto_now_add=True)
+    
+    def __str__(self):
+        return self.sender
+
+class ContentNotifyerperuser(models.Model):
+    notification = models.ForeignKey(ContentSaveNotifyer, on_delete=models.CASCADE)
+    receiver = models.CharField(max_length=255)    
+    isviewed = models.BooleanField(default=False)
+    created = models.DateTimeField(auto_now_add=True)
+    
+    def __str__(self):
+        return self.receiver
 
 class ProductRequest(models.Model):
     author = models.ForeignKey(User, on_delete=models.CASCADE)    
