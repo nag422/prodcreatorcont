@@ -26,6 +26,12 @@ urlpatterns = [
     path('admin/saveproduct/',views.save_product,name='saveproduct'),
     path('admin/saveproductbyadmin/',views.save_product_by_admin,name='saveproductadmin'),
     path('admin/editproductsave/',views.editProductSave,name='editproductsave'),
+
+    path('admin/getadminmesssages/',views.GetAdminMessages,name='getadminmessages'),
+    path('admin/getadminmesssagesreply/',views.GetAdminMessagesReply,name='getadminmessagesreply'),
+    path('admin/deletemessages/',views.DeleteMessages,name='deletemessages'),
+
+    
     
     path('admin/requestsaveproduct/',views.requestsaveproduct,name='requestsaveproduct'),
     path('admin/getProductsall/',views.getProductsall,name='getProductsall'),
@@ -69,6 +75,8 @@ urlpatterns = [
 
     path('admin/chat/users/',views.MessageChatusers,name='messageChatusers'),
     path('admin/chat/savemessage/',views.MessageChatMessages,name='savemessage'),
+
+    path('admin/getsellermessages/',views.getsellermessages,name='getsellermessages'),
 
 
     # Dashboard

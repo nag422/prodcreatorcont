@@ -1,7 +1,7 @@
 from django.shortcuts import render,get_object_or_404
 from django.http import HttpResponse,JsonResponse
 from django.middleware.csrf import get_token
-from quizz.models import Profile,Books,Content,ProductGroup,Likedproducts,Boughtedproducts,AssignedUsersGroup,ProductAssigns,MessageInbox,ContentSaveNotifyer
+from quizz.models import Profile,Books,Content,ProductGroup,Likedproducts,Boughtedproducts,AssignedUsersGroup,ProductAssigns,MessageInbox,ContentSaveNotifyer,MessageChatter
 from django.contrib.auth.models import User
 from django.views.generic.base import TemplateView,RedirectView
 from django.views.generic.detail import DetailView
@@ -10,11 +10,11 @@ from django.views.generic.edit import FormView,CreateView,UpdateView
 from django.db.models import F
 from django.utils import timezone
 from django.core.paginator import Paginator
-from .forms import AddForm,ProductForm,ProductRequestForm,GroupForm,MessageInboxForm
+from .forms import AddForm,ProductForm,ProductRequestForm,GroupForm,MessageInboxForm,MessageChatterForm
 from django.views.decorators.csrf import ensure_csrf_cookie, csrf_protect,csrf_exempt
 import json
 from authentication.utils import DatabaseDynamic
-from .serializers import ProductsSerializer,ProductAssignsSerializer,ProductGroupSerializer,MessageInboxSerializer
+from .serializers import ProductsSerializer,ProductAssignsSerializer,ProductGroupSerializer,MessageInboxSerializer,MessageChatterSerializer
 from authentication.serializers import CustomUserSerializer
 import uuid
 from rest_framework.decorators import api_view, schema,permission_classes
@@ -1096,3 +1096,170 @@ def MessageChatMessages(request):
 #             'status':status
 #         }
 #     return Response(context)
+@csrf_exempt
+@api_view(['POST','GET'])
+@permission_classes([AllowAny,])
+def GetAdminMessages(request):
+    message = "Success"
+    status=200
+    msgs = []
+
+    if request.method == "POST":
+        request.POST._mutable = True
+        request.POST.update({'sender':request.user.id,'receiver':0,'sendertype':'superuser','msgtype':'send',
+        'receivertype':request.POST.get('to'),'isgrouped':'yes','msg':request.POST.get('message'),'category':'superuser'})
+        msgform = MessageChatterForm(request.POST)
+        if msgform.is_valid():
+            msgform.save()
+        else:
+            message = msgform.errors
+
+        context = {            
+            'message':message,
+            'status':status
+        }
+
+    if request.method == "GET":
+        request_query = request.GET.get('q')
+
+        if request_query == "all":
+            messagesinstance = MessageChatter.objects.all()
+        else:
+            messagesinstance = MessageChatter.objects.filter(sendertype=request_query)
+
+        serializer = MessageChatterSerializer(messagesinstance,many=True)
+        
+
+        for every in serializer.data:
+            sendername = User.objects.get(id=int(every['sender'])).username
+            try:
+                receiverrname = User.objects.get(id=int(every['receiver'])).username
+            except:
+                receiverrname = "----"
+
+            every['sendername'] = str(sendername)
+            every['receivername'] = receiverrname
+            msgs.append(dict(every))
+
+        context = {
+            'mesgs':msgs,
+            'message':message,
+            'status':status
+        }
+    return Response(context)
+
+@csrf_exempt
+@api_view(['POST','GET'])
+@permission_classes([AllowAny,])
+def GetAdminMessagesReply(request):
+    message = "Success"
+    status=200
+    msgs = []
+
+    if request.method == "POST":
+        request.POST._mutable = True
+        
+        itemlist = (request.POST.get('itemlist')).split(',')   
+
+        if itemlist is not None:
+
+            for items in itemlist:
+                
+                request.POST._mutable = True
+                receiverdata = MessageChatter.objects.get(id=int(items))
+
+                request.POST.update({'sender':request.user.id,'receiver':int(items),'sendertype':'superuser','msgtype':'reply',
+                'receivertype':receiverdata.receivertype,'isgrouped':'no','msg':request.POST.get('message'),'category':'superuser'})
+
+
+                msgform = MessageChatterForm(request.POST)
+
+                if msgform.is_valid():
+                    msgform.save()
+                else:
+                    message = msgform.errors
+
+        context = {            
+            'message':message,
+            'status':status
+        }
+        return Response(context)
+
+@csrf_exempt
+@api_view(['POST','GET'])
+@permission_classes([AllowAny,])
+def DeleteMessages(request):
+    message = "Success"
+    status=200
+    msgs = []
+
+    if request.method == "POST":
+        itemlist = (request.POST.get('itemlist')).split(',')    
+        if itemlist is not None:
+            for items in itemlist:
+                try:
+                    MessageChatter.objects.get(id=int(items)).delete()
+                except Exception as e:
+                    status=400
+
+    context = {            
+            'message':message,
+            'status':status
+        }
+    return Response(context)
+                
+
+
+
+@csrf_exempt
+@api_view(['POST','GET'])
+@permission_classes([AllowAny,])
+def getsellermessages(request):
+    message = "Success"
+    status=200
+    msgs = []
+
+    if request.method == "POST":
+        request.POST._mutable = True
+        request.POST.update({'sender':request.user.id,'receiver':0,'sendertype':'receiver','msgtype':'send',
+        'receivertype':request.POST.get('to'),'isgrouped':'no','msg':request.POST.get('message'),'category':'creator'})
+        msgform = MessageChatterForm(request.POST)
+        if msgform.is_valid():
+            msgform.save()
+        else:
+            message = msgform.errors
+
+        context = {            
+            'message':message,
+            'status':status
+        }
+
+    if request.method == "GET":
+        request_query = request.GET.get('q')
+
+        if request_query == "all":
+            messagesinstance = MessageChatter.objects.filter(isgrouped='yes',receivertype='creator')
+        else:
+            messagesinstance = MessageChatter.objects.filter(receiver=request.user.id,isgrouped='no')
+
+        serializer = MessageChatterSerializer(messagesinstance,many=True)
+        
+
+        for every in serializer.data:
+            sendername = User.objects.get(id=int(every['sender'])).username
+            try:
+                receiverrname = User.objects.get(id=int(every['receiver'])).username
+            except:
+                receiverrname = "----"
+
+            every['sendername'] = str(sendername)
+            every['receivername'] = receiverrname
+            msgs.append(dict(every))
+
+        context = {
+            'mesgs':msgs,
+            'message':message,
+            'status':status
+        }
+    return Response(context)
+            

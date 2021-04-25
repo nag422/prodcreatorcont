@@ -234,3 +234,35 @@ class MessageInbox(models.Model):
     
     def __str__(self):
         return f"{self.sender}"
+
+class ChatMessages(models.Model):
+    
+    sender = models.CharField(max_length=255,blank=True)
+    receiver = models.CharField(max_length=255,blank=True)
+    sendertype = models.CharField(max_length=255,blank=True)
+    receivertype = models.CharField(max_length=255,blank=True)    
+    isgrouped = models.CharField(max_length=255,blank=True)
+    msg=models.TextField()
+    category=models.CharField(max_length=255,blank=True)    
+    updated = models.DateTimeField(auto_now=True)
+    created = models.DateTimeField(auto_now_add=True)
+    
+    def __str__(self):
+        return f"{self.sender}"
+
+class MessageChatter(models.Model):
+    
+    sender = models.CharField(max_length=255,blank=True)
+    receiver = models.CharField(max_length=255,blank=True)
+    sendertype = models.CharField(max_length=255,blank=True)
+    receivertype = models.CharField(max_length=255,blank=True)    
+    isgrouped = models.CharField(max_length=255,blank=True)
+    msg=models.TextField()
+    msgtype=models.CharField(max_length=255,blank=True)
+    category=models.CharField(max_length=255,blank=True)    
+    updated = models.DateTimeField(auto_now=True)
+    created = models.DateTimeField(auto_now_add=True)
+    
+    def __str__(self):
+        return f"{self.sender}"
+    

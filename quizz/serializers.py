@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from quizz.models import Profile,Content,ProductAssigns,ProductGroup,MessageInbox
+from quizz.models import Profile,Content,ProductAssigns,ProductGroup,MessageInbox,MessageChatter
 
 
 class ProductsSerializer(serializers.ModelSerializer):
@@ -25,4 +25,8 @@ class ProductGroupSerializer(serializers.ModelSerializer):
 class MessageInboxSerializer(serializers.ModelSerializer):
     class Meta:
         model=MessageInbox
+        fields="__all__"
+class MessageChatterSerializer(serializers.ModelSerializer):
+    class Meta:
+        model=MessageChatter
         fields="__all__"
