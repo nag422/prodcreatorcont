@@ -14,7 +14,7 @@ from .forms import AddForm,ProductForm,ProductRequestForm,GroupForm,MessageInbox
 from django.views.decorators.csrf import ensure_csrf_cookie, csrf_protect,csrf_exempt
 import json
 from authentication.utils import DatabaseDynamic
-from .serializers import ProductsSerializer,ProductAssignsSerializer,ProductGroupSerializer,MessageInboxSerializer,MessageChatterSerializer
+from .serializers import ProductsSerializer,ProductAssignsSerializer,ProductGroupSerializer,MessageInboxSerializer,MessageChatterSerializer,ContentSaveNotifyerSerializer
 from authentication.serializers import CustomUserSerializer
 import uuid
 from rest_framework.decorators import api_view, schema,permission_classes
@@ -53,25 +53,117 @@ def dashboardView(request):
     enquiries=0
     leads=0
     error=""
+    likedcount = 0
+    interestcount =0
+
+
     try:
-        sellers = Profile.objects.filter(content="creator").count()    
-        buyers = Profile.objects.filter(content="producer").count()  
-        enquiries = MessageInbox.objects.all().count()
-        leads = 0
+        if request.user.is_superuser:
+            sellers = Profile.objects.filter(content="creator").count()    
+            buyers = Profile.objects.filter(content="producer").count()  
+            sellerenquiries = MessageChatter.objects.filter(sendertype="creator").count()
+            buyerenquiries = MessageChatter.objects.filter(sendertype="producer").count()
+        else:
+            sellerenquiries = MessageChatter.objects.filter(sender=request.user.id).count()
+            likedcount = Likedproducts.objects.filter(user=request.user.id).count()
+            interestcount = Boughtedproducts.objects.filter(user=request.user.id).count()
+            
+ 
     except Exception as e:
         error = str(e)
 
     context = {
         'sellers':sellers,
         'buyers':buyers,
-        'enquiries':enquiries,
-        'leads':leads,
+        'sellerenquiries':sellerenquiries,
+        'buyerenquiries':buyerenquiries,
+        'likedcount':likedcount,
+        'interestcount':interestcount,
         'error':error
 
 
     }
     # return JsonResponse(context)
     return Response(context)
+
+
+
+@api_view(['GET','POST'])
+@permission_classes([IsAuthenticated])
+def dashboardviewsellerView(request):
+    sellers = 0
+    buyers=0
+    enquiries=0
+    leads=0
+    error=""
+    likedcount = 0
+    interestcount =0
+
+
+    try:
+        
+        # sellers = Profile.objects.filter(content="creator").count()    
+        # buyers = Profile.objects.filter(content="producer").count()  
+        totaluploads = Content.objects.filter(author = request.user.id).count()
+        sellerenquiries = MessageChatter.objects.filter(sendertype="creator").count()
+        likedcount = Likedproducts.objects.filter(user=request.user.id).count()
+        interestcount = Boughtedproducts.objects.filter(user=request.user.id).count()
+        
+    
+    except Exception as e:
+        error = str(e)
+
+    context = {
+        'totaluploads':totaluploads,
+        'sellerenquiries':sellerenquiries,        
+        'likedcount':likedcount,
+        'interestcount':interestcount,
+        'error':error
+
+
+    }
+    # return JsonResponse(context)
+    return Response(context)
+
+
+@api_view(['GET','POST'])
+@permission_classes([IsAuthenticated])
+def dashboardviewbuyerView(request):
+    sellers = 0
+    buyers=0
+    enquiries=0
+    leads=0
+    error=""
+    likedcount = 0
+    interestcount =0
+
+
+    try:
+        
+        # sellers = Profile.objects.filter(content="creator").count()    
+        # buyers = Profile.objects.filter(content="producer").count()  
+        # totaluploads = Content.objects.filter(author = request.user.id).count()
+        buyerenquiries = MessageChatter.objects.filter(sendertype="producer").count()
+        likedcount = Likedproducts.objects.filter(user=request.user.id).count()
+        interestcount = Boughtedproducts.objects.filter(user=request.user.id).count()
+        
+    
+    except Exception as e:
+        error = str(e)
+
+    context = {
+        # 'totaluploads':totaluploads,
+        'sellerenquiries':sellerenquiries,        
+        'likedcount':likedcount,
+        'interestcount':interestcount,
+        'error':error
+
+
+    }
+    # return JsonResponse(context)
+    return Response(context)
+
+
 
 
 class Ex2View(TemplateView):
@@ -275,10 +367,10 @@ def save_product(request):
         
         
         if ProductFormResponse.is_valid():
-            ProductFormResponse.save()
+            prodid = ProductFormResponse.save()
             message = "Successfully saved"
             status= 200
-            ContentSaveNotifyer.objects.create(user=user_ptr,sender=request.user,receiver='buyer',
+            ContentSaveNotifyer.objects.create(user=user_ptr,sender=request.user,receiver='buyer',productid=prodid.id,
             sendertype='seller',receivertype='buyer')
             return Response({'message':message,'status':status,'error':error})
         else:
@@ -980,11 +1072,11 @@ def save_product_by_admin(request):
         
         
         if ProductFormResponse.is_valid():
-            ProductFormResponse.save()
+            prodid = ProductFormResponse.save()
             message = "Successfully saved"
-            status= 200
-            ContentSaveNotifyer.objects.create(user=user_ptr,sender=request.user,receiver='seller',
-            sendertype='superadmin',receivertype='seller')
+            status= 200            
+            ContentSaveNotifyer.objects.create(user=user_ptr,sender=request.user,receiver='buyer',productid=prodid.id,
+            sendertype='seller',receivertype='buyer')
 
             return Response({'message':message,'status':status,'error':error})
         else:
@@ -998,6 +1090,36 @@ def save_product_by_admin(request):
         message = "Method is not Allowed"
         
         return Response({'message':message,'status':status,'error':error})
+
+@api_view(['POST','GET'])
+@permission_classes([AllowAny,])
+def NotifyGetter(request):
+    message = ''
+    status = ''
+    error = ''
+    notifications = []
+    data = ContentSaveNotifyer.objects.all()
+    serializer = ContentSaveNotifyerSerializer(data,many=True)
+    serializerdata = serializer.data
+    for proid in serializerdata:
+        try:
+            productname = Content.objects.get(id=int(proid['productid']))
+            prodtitle = productname.title
+        except:
+            prodtitle='-----'
+
+        proid['productname'] = prodtitle
+        notifications.append(proid)
+        
+    
+    context = {
+        'message':message,
+        'status': status,
+        'error':error,
+        'notificationdata':notifications if len(notifications) > 0 else []
+    }
+    return Response(context)
+
 
 @csrf_exempt
 def GroupProductSave(request):
@@ -1221,7 +1343,7 @@ def getsellermessages(request):
 
     if request.method == "POST":
         request.POST._mutable = True
-        request.POST.update({'sender':request.user.id,'receiver':0,'sendertype':'receiver','msgtype':'send',
+        request.POST.update({'sender':request.user.id,'receiver':0,'sendertype':'creator','msgtype':'send',
         'receivertype':request.POST.get('to'),'isgrouped':'no','msg':request.POST.get('message'),'category':'creator'})
         msgform = MessageChatterForm(request.POST)
         if msgform.is_valid():
@@ -1239,6 +1361,60 @@ def getsellermessages(request):
 
         if request_query == "all":
             messagesinstance = MessageChatter.objects.filter(isgrouped='yes',receivertype='creator')
+        else:
+            messagesinstance = MessageChatter.objects.filter(receiver=request.user.id,isgrouped='no')
+
+        serializer = MessageChatterSerializer(messagesinstance,many=True)
+        
+
+        for every in serializer.data:
+            sendername = User.objects.get(id=int(every['sender'])).username
+            try:
+                receiverrname = User.objects.get(id=int(every['receiver'])).username
+            except:
+                receiverrname = "----"
+
+            every['sendername'] = str(sendername)
+            every['receivername'] = receiverrname
+            msgs.append(dict(every))
+
+        context = {
+            'mesgs':msgs,
+            'message':message,
+            'status':status
+        }
+    return Response(context)
+
+
+
+@csrf_exempt
+@api_view(['POST','GET'])
+@permission_classes([AllowAny,])
+def getbuyermessages(request):
+    message = "Success"
+    status=200
+    msgs = []
+
+    if request.method == "POST":
+        request.POST._mutable = True
+        request.POST.update({'sender':request.user.id,'receiver':0,'sendertype':'producer','msgtype':'send',
+        'receivertype':request.POST.get('to'),'isgrouped':'no','msg':request.POST.get('message'),'category':'producer'})
+        msgform = MessageChatterForm(request.POST)
+        if msgform.is_valid():
+            msgform.save()
+        else:
+            message = msgform.errors
+
+        context = {            
+            'message':message,
+            'status':status
+        }
+
+    if request.method == "GET":
+        request_query = request.GET.get('q')
+
+        if request_query == "all":
+            messagesinstance = MessageChatter.objects.filter(isgrouped='yes',receivertype='producer')
         else:
             messagesinstance = MessageChatter.objects.filter(receiver=request.user.id,isgrouped='no')
 

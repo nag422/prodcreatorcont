@@ -77,11 +77,16 @@ urlpatterns = [
     path('admin/chat/savemessage/',views.MessageChatMessages,name='savemessage'),
 
     path('admin/getsellermessages/',views.getsellermessages,name='getsellermessages'),
+    path('admin/getbuyermessages/',views.getbuyermessages,name='getbuyermessages'),
+
+    path('admin/getnotifications/',views.NotifyGetter,name='NotifyGetter'),
 
 
     # Dashboard
 
-    path('admin/dashboardview/',views.dashboardView,name='dashboardview')
+    path('admin/dashboardview/',views.dashboardView,name='dashboardview'),
+    path('admin/dashboardviewseller/',views.dashboardviewsellerView,name='dashboardviewseller'),
+    path('admin/dashboardviewbuyerview/',views.dashboardviewbuyerView,name='dashboardviewbuyerView')
 
     
     

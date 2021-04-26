@@ -128,6 +128,7 @@ class ContentSaveNotifyer(models.Model):
     receiver = models.CharField(max_length=255)
     sendertype = models.CharField(max_length=255)
     receivertype = models.CharField(max_length=255)
+    productid = models.CharField(max_length=255)
     isviewed = models.BooleanField(default=False)
     created = models.DateTimeField(auto_now_add=True)
     
