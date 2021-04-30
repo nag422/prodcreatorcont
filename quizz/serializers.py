@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from quizz.models import Profile,Content,ProductAssigns,ProductGroup,MessageInbox,MessageChatter,ContentSaveNotifyer
+from quizz.models import Profile,Content,ProductAssigns,ProductGroup,MessageInbox,MessageChatter,ContentSaveNotifyer,MessageRequest,ProductRequest
 
 
 class ProductsSerializer(serializers.ModelSerializer):
@@ -35,3 +35,19 @@ class ContentSaveNotifyerSerializer(serializers.ModelSerializer):
     class Meta:
         model=ContentSaveNotifyer
         fields="__all__"
+
+class MessageRequestSerializer(serializers.ModelSerializer):
+    class Meta:
+        model=MessageRequest
+        fields="__all__"
+
+class ProductRequestSerializer(serializers.ModelSerializer):
+    class Meta:
+        model=ProductRequest
+        fields="__all__"
+
+
+
+
+
+        

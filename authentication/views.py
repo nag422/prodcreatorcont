@@ -468,13 +468,14 @@ def saveUser(request):
         phone=request.POST['phone']
         usertype=request.POST['usertype']
         category=request.POST['usercategory']
+        email=request.POST['email']
         
         if str(usertype) == "user":
-            user_admin=User.objects.create_user(username=username.lower(),is_active=True,password=password)
+            user_admin=User.objects.create_user(username=username.lower(),is_active=True,password=password,email=email)
         elif str(usertype) == "admin":
-            user_admin=User.objects.create_superuser(username=username.lower(),is_active=True,is_staff=True,password=password)
+            user_admin=User.objects.create_superuser(username=username.lower(),is_active=True,is_staff=True,password=password,email=email)
         elif str(usertype) == "superuser":
-            user_admin=User.objects.create_user(username=username.lower(),is_active=True,is_staff=True,password=password,is_superuser=True)
+            user_admin=User.objects.create_user(username=username.lower(),is_active=True,is_staff=True,password=password,is_superuser=True,email=email)
         try:
             user_id = user_admin.id
             print(user_admin)
@@ -532,18 +533,71 @@ def saveUser(request):
 @api_view(['POST','GET'])
 def getsingleUser(request):
     isquery = request.GET.get('username')
+    isUsertype = request.GET.get('usertype')
+    isUsercontent = request.GET.get('usercontent')
+
     error=False
     message=''
     user_id=''
-    posts=''
+    posts=[]
+    place =""
     GETmethodData = []
-    if isquery is not None:
 
-        try:
-            posts = User.objects.filter(username__contains=str(isquery)).all()
-        except Exception as e:
-            pass
-            print(e)
+
+    # return JsonResponse({'query':len(isquery)})
+
+    if len(isquery) > 0:
+        place = 1
+        posts = User.objects.filter(username__contains=str(isquery)).all()
+        # if isUsertype == "all" and isUsercontent =="all":
+        #     try:
+        #         posts = User.objects.filter(username__contains=str(isquery)).all()
+        #     except Exception as e:
+        #         pass
+                
+        #     for i in posts.values():
+        #         try:
+        #             userinstance=Profile.objects.get(user_ptr=i['id'])            
+        #             i.update({'content':userinstance.content,'user_ptr':userinstance.user_ptr_id})
+        #         except:
+        #             pass
+        #         GETmethodData.append(i)
+        
+        # elif isUsertype !="all":
+        #     try:
+        #         if str(usertype) == "user":
+        #             posts=User.objects.filter(username__contains=username.lower()).all()
+        #         elif str(usertype) == "admin":
+        #             posts=User.objects.filter(username__contains=username.lower(),is_staff=True).all()
+        #         elif str(usertype) == "superuser":
+        #             posts=User.objects.filter(username__contains=username.lower(),is_superuser=True).all()
+                
+        #     except Exception as e:
+        #         pass
+                
+        #     for i in posts.values():
+        #         try:
+        #             userinstance=Profile.objects.get(user_ptr=i['id'])            
+        #             i.update({'content':userinstance.content,'user_ptr':userinstance.user_ptr_id})
+        #         except:
+        #             pass
+        #         GETmethodData.append(i)
+        
+        # elif isUsercontent !="all":
+        #     try:
+        #         posts=User.objects.filter(username__contains=username.lower()).all()                
+                
+        #     except Exception as e:
+        #         pass
+                
+        #     for i in posts.values():
+        #         try:
+        #             userinstance=Profile.objects.get(user_ptr=i['id'],content=str(isUsercontent))            
+        #             i.update({'content':userinstance.content,'user_ptr':userinstance.user_ptr_id})
+        #         except:
+        #             pass
+        #         GETmethodData.append(i)
+        # else:
         for i in posts.values():
             try:
                 userinstance=Profile.objects.get(user_ptr=i['id'])            
@@ -551,11 +605,72 @@ def getsingleUser(request):
             except:
                 pass
             GETmethodData.append(i)
+
+
+    elif len(isquery) <= 0:
+        place = 2
+        # return JsonResponse({"level":'is none' if isUsertype == "undefined" else 'no none' })
+        if isUsertype == "all" and isUsercontent =="all":
+            place = 3
+            try:
+                posts = User.objects.all()
+            except Exception as e:
+                pass
+                
+            for i in posts.values():
+                try:
+                    userinstance=Profile.objects.get(user_ptr=i['id'])            
+                    i.update({'content':userinstance.content,'user_ptr':userinstance.user_ptr_id})
+                    GETmethodData.append(i)
+                except:
+                    pass
+                
+        
+        elif isUsertype !="all" and isUsertype != "undefined":
+            place = 4
+            try:
+                if str(isUsertype) == "user":
+                    posts=User.objects.all()
+                elif str(isUsertype) == "admin":
+                    posts=User.objects.filter(is_staff=True,is_superuser=False)
+                elif str(isUsertype) == "superuser":
+                    posts=User.objects.filter(is_superuser=True)
+                
+            except Exception as e:
+                pass
+                
+            for i in posts.values():
+                try:
+                    userinstance=Profile.objects.get(user_ptr=i['id'])            
+                    i.update({'content':userinstance.content,'user_ptr':userinstance.user_ptr_id})
+                    GETmethodData.append(i)
+                except:
+                    pass
+                
+        
+        elif isUsercontent !="all" and isUsercontent != "undefined":
+            place = 5
+            posts = User.objects.all()
+            for i in posts.values():
+                try:
+                    userinstance=Profile.objects.get(user_ptr=i['id'],content=str(isUsercontent))            
+                    i.update({'content':userinstance.content,'user_ptr':userinstance.user_ptr_id})
+                    GETmethodData.append(i)
+                except:
+                    pass
+                
+
+
     response={
-            'error':error,
-            'message':message,
-            'user_id':user_id,
-            'GETmethodData':GETmethodData
+        "place":place,
+        'posts':str(posts),
+        'isquery':isquery,
+        'isUsertype':isUsertype,
+        'isUsercontent':isUsercontent,
+        'error':error,
+        'message':message,
+        'user_id':user_id,
+        'GETmethodData':GETmethodData
             }
     return JsonResponse(response)
 

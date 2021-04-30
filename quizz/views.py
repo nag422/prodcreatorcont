@@ -1,7 +1,7 @@
 from django.shortcuts import render,get_object_or_404
 from django.http import HttpResponse,JsonResponse
 from django.middleware.csrf import get_token
-from quizz.models import Profile,Books,Content,ProductGroup,Likedproducts,Boughtedproducts,AssignedUsersGroup,ProductAssigns,MessageInbox,ContentSaveNotifyer,MessageChatter
+from quizz.models import Profile,Books,Content,ProductGroup,Likedproducts,Boughtedproducts,AssignedUsersGroup,ProductAssigns,MessageInbox,ContentSaveNotifyer,MessageChatter,MessageRequest,ProductRequest
 from django.contrib.auth.models import User
 from django.views.generic.base import TemplateView,RedirectView
 from django.views.generic.detail import DetailView
@@ -14,7 +14,7 @@ from .forms import AddForm,ProductForm,ProductRequestForm,GroupForm,MessageInbox
 from django.views.decorators.csrf import ensure_csrf_cookie, csrf_protect,csrf_exempt
 import json
 from authentication.utils import DatabaseDynamic
-from .serializers import ProductsSerializer,ProductAssignsSerializer,ProductGroupSerializer,MessageInboxSerializer,MessageChatterSerializer,ContentSaveNotifyerSerializer
+from .serializers import ProductsSerializer,ProductAssignsSerializer,ProductGroupSerializer,MessageInboxSerializer,MessageChatterSerializer,ContentSaveNotifyerSerializer,ProductRequestSerializer
 from authentication.serializers import CustomUserSerializer
 import uuid
 from rest_framework.decorators import api_view, schema,permission_classes
@@ -128,6 +128,7 @@ def dashboardviewsellerView(request):
 
 @api_view(['GET','POST'])
 @permission_classes([IsAuthenticated])
+
 def dashboardviewbuyerView(request):
     sellers = 0
     buyers=0
@@ -144,8 +145,8 @@ def dashboardviewbuyerView(request):
         # buyers = Profile.objects.filter(content="producer").count()  
         # totaluploads = Content.objects.filter(author = request.user.id).count()
         buyerenquiries = MessageChatter.objects.filter(sendertype="producer").count()
-        likedcount = Likedproducts.objects.filter(user=request.user.id).count()
-        interestcount = Boughtedproducts.objects.filter(user=request.user.id).count()
+        likedcount = Likedproducts.objects.filter(user=request.user).count()
+        interestcount = Boughtedproducts.objects.filter(user=request.user).count()
         
     
     except Exception as e:
@@ -153,7 +154,7 @@ def dashboardviewbuyerView(request):
 
     context = {
         # 'totaluploads':totaluploads,
-        'sellerenquiries':sellerenquiries,        
+        'sellerenquiries':buyerenquiries,        
         'likedcount':likedcount,
         'interestcount':interestcount,
         'error':error
@@ -646,10 +647,18 @@ def getProductsallliked(request):
     for i in allobjects.values():        
         df = Content.objects.filter(id=i['post_id'])
         for every in df.values():
+            dt = Likedproducts.objects.filter(post=every['id']).exists()
+            df = Boughtedproducts.objects.filter(post=every['id']).exists()
+            every['isliked'] = dt
+            every['isfavored'] = df
+
             every['customauthor'] = User.objects.get(id=int(every['author_id'])).username
-            every['likedby'] = i['user_id']
+            every['likedby'] = i['user_id']           
+
             every['likedbyname'] = User.objects.get(id=int(i['user_id'])).username
             product.append(every)
+
+
     
     response = {
         'obs':(product),
@@ -697,6 +706,10 @@ def getProductsallbagged(request):
     for i in allobjects.values():        
         df = Content.objects.filter(id=i['post_id'])
         for every in df.values():
+            dt = Likedproducts.objects.filter(post=every['id']).exists()
+            df = Boughtedproducts.objects.filter(post=every['id']).exists()
+            every['isliked'] = dt
+            every['isfavored'] = df
             every['customauthor'] = User.objects.get(id=int(every['author_id'])).username
             every['likedby'] = i['user_id']
             every['likedbyname'] = User.objects.get(id=int(i['user_id'])).username
@@ -1415,22 +1428,30 @@ def getbuyermessages(request):
 
         if request_query == "all":
             messagesinstance = MessageChatter.objects.filter(isgrouped='yes',receivertype='producer')
+            serializer = MessageChatterSerializer(messagesinstance,many=True)
+        elif request_query == "requests":
+            requestproductdata = ProductRequest.objects.filter(author=request.user)
+            serializer = ProductRequestSerializer(requestproductdata,many=True) 
+            for every in serializer.data:
+                every['msg'] = str(every['title']) + '---' + str(every['category'])
+                msgs.append(dict(every)) 
+
         else:
             messagesinstance = MessageChatter.objects.filter(receiver=request.user.id,isgrouped='no')
 
-        serializer = MessageChatterSerializer(messagesinstance,many=True)
+            serializer = MessageChatterSerializer(messagesinstance,many=True)
         
+        if request_query != "requests":
+            for every in serializer.data:
+                sendername = User.objects.get(id=int(every['sender'])).username
+                try:
+                    receiverrname = User.objects.get(id=int(every['receiver'])).username
+                except:
+                    receiverrname = "----"
 
-        for every in serializer.data:
-            sendername = User.objects.get(id=int(every['sender'])).username
-            try:
-                receiverrname = User.objects.get(id=int(every['receiver'])).username
-            except:
-                receiverrname = "----"
-
-            every['sendername'] = str(sendername)
-            every['receivername'] = receiverrname
-            msgs.append(dict(every))
+                every['sendername'] = str(sendername)
+                every['receivername'] = receiverrname
+                msgs.append(dict(every))
 
         context = {
             'mesgs':msgs,
@@ -1438,4 +1459,28 @@ def getbuyermessages(request):
             'status':status
         }
     return Response(context)
-            
+
+# @csrf_exempt
+# @api_view(['POST','GET'])
+# @permission_classes([AllowAny,])            
+# def GetMessageRequest(request):
+#     message = "Success"
+#     status=200
+#     msgs = []
+
+#     if request.method == "POST":
+#         request.POST._mutable = True
+#         request.POST.update({'sender':request.user.id,'receiver':'superuser','sendertype':'producer','msgtype':'send',
+#         'receivertype':request.POST.get('to'),'isgrouped':'no','msg':request.POST.get('message'),'category':'producer'})
+#         msgform = MessageChatterForm(request.POST)
+#         if msgform.is_valid():
+#             msgform.save()
+#         else:
+#             message = msgform.errors
+
+#         context = {            
+#             'message':message,
+#             'status':status
+#         }
+
+#     return Response(context)
