@@ -20,6 +20,10 @@ import uuid
 from rest_framework.decorators import api_view, schema,permission_classes
 from rest_framework.permissions import IsAuthenticated,AllowAny
 from rest_framework.response import Response
+from rest_framework.pagination import PageNumberPagination
+
+import datetime
+from dateutil.relativedelta import relativedelta
 
 def get_random_code():
     code = str(uuid.uuid4())[:8].replace('-', '').lower()   
@@ -55,6 +59,9 @@ def dashboardView(request):
     error=""
     likedcount = 0
     interestcount =0
+    usersarray =[]
+    contentarray=[]
+    weekdays = []
 
 
     try:
@@ -63,10 +70,29 @@ def dashboardView(request):
             buyers = Profile.objects.filter(content="producer").count()  
             sellerenquiries = MessageChatter.objects.filter(sendertype="creator").count()
             buyerenquiries = MessageChatter.objects.filter(sendertype="producer").count()
+
+            monthsnamearray = ['','Jan','Feb','Mar','April','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec']
+
+            for dates in range(1,7):
+                # usercount = 0
+                # productcount=0
+                weekdaysexplorer = datetime.datetime.today() - relativedelta(days=int(dates))
+                usercount = User.objects.filter(date_joined = datetime.datetime(weekdaysexplorer.year, weekdaysexplorer.month, weekdaysexplorer.day)).count()
+                usersarray.append(int(usercount))
+
+                productcount = Content.objects.filter(created = datetime.datetime(weekdaysexplorer.year, weekdaysexplorer.month, weekdaysexplorer.day)).count()
+                contentarray.append(int(productcount))
+
+                weekdays.append((str(weekdaysexplorer.day) + str(monthsnamearray[weekdaysexplorer.month])))
         else:
             sellerenquiries = MessageChatter.objects.filter(sender=request.user.id).count()
             likedcount = Likedproducts.objects.filter(user=request.user.id).count()
             interestcount = Boughtedproducts.objects.filter(user=request.user.id).count()
+        
+        
+        
+
+            
             
  
     except Exception as e:
@@ -79,7 +105,11 @@ def dashboardView(request):
         'buyerenquiries':buyerenquiries,
         'likedcount':likedcount,
         'interestcount':interestcount,
+        'usersarray':usersarray,
+        'contentarray':contentarray,
+        'weekdays':weekdays,
         'error':error
+        
 
 
     }
@@ -401,10 +431,10 @@ def editProductSave(request):
     if request.method == "POST":
         slug = slugify(request.POST.get('title'))
         request.POST.update(author=user_ptr,slug=slug)
-        instance = Content.objects.get(id=int(39))
+        instance = Content.objects.get(id=int(request.POST.get('id')))
         ProductFormResponse = ProductForm(request.POST or None,request.FILES or None, instance=instance)
 
-        print((request.FILES))
+        # print((request.FILES))
 
         if ProductFormResponse.is_valid():
             ProductFormResponse.save()
@@ -484,8 +514,40 @@ def getProductsall(request):
     return JsonResponse(response)
 
 @csrf_exempt
-# @api_view(['POST'])
-# @permission_classes([AllowAny,])
+@api_view(['GET','POST'])
+def getProductsofcreator(request):
+    product = []
+    error=False,
+    status=200
+    try:
+        pageno = request.GET['page']
+        
+    except:
+        pageno = 0
+    # allobjects = Content.objects.filter(is_active=True)[int(pageno):2]
+    allobjects = Content.objects.filter(author=request.user)
+    
+    
+    for i in allobjects.values():
+        dt = Likedproducts.objects.filter(post=i['id']).exists()
+        df = Boughtedproducts.objects.filter(post=i['id']).exists()
+        
+        i['isliked'] = dt
+        i['isfavored'] = df
+        i['customauthor'] = (User.objects.get(pk=i['author_id']).username).capitalize()
+        
+        product.append(i)
+    
+    response = {
+        'obs':(product),
+        'status':200,
+        'error':error
+    }
+    return JsonResponse(response)
+
+@csrf_exempt
+@api_view(['POST'])
+@permission_classes([AllowAny,])
 def getProductById(request):
     product = []
     error=False,
@@ -495,7 +557,7 @@ def getProductById(request):
     except:
         data = {}
     # allobjects = Content.objects.filter(is_active=True)[int(pageno):2]
-    allobjects = Content.objects.filter(id=int(data.get('productid')),is_active=True)
+    allobjects = Content.objects.filter(id=int(data.get('productid')))
     
     
     for i in allobjects.values():
@@ -948,6 +1010,36 @@ def productstatus(request):
     return JsonResponse(context)        
 
 
+@csrf_exempt
+@api_view(['POST'])
+def deleteproduct(request):
+    postid = request.POST.get('id')
+    status = 200
+    message = ""
+    
+    try:
+        if request.user.is_superuser:
+            dt = Content.objects.filter(id=int(postid))
+        else:
+            dt = Content.objects.filter(id=int(postid),author=request.user)
+
+        dt.delete()
+        message = "Deleted"
+        try:
+            dn = ContentSaveNotifyer.objects.filter(productid=int(postid))
+            if dn:
+                dn.delete()
+        except:
+            message = "Deleted but notification is not exist"
+    except:        
+        message = "Something is went wrong"
+        status = 400
+    context = {
+        'status':status,
+        'message':message
+    }
+    
+    return JsonResponse(context)
 
 
 @csrf_exempt
@@ -1118,11 +1210,17 @@ def NotifyGetter(request):
         try:
             productname = Content.objects.get(id=int(proid['productid']))
             prodtitle = productname.title
+            proid['productname'] = prodtitle
+            dt = Likedproducts.objects.filter(post=productname.id).exists()
+            df = Boughtedproducts.objects.filter(post=productname.id).exists()
+            
+            proid['isliked'] = dt
+            proid['isfavored'] = df
+            notifications.append(proid)
         except:
             prodtitle='-----'
 
-        proid['productname'] = prodtitle
-        notifications.append(proid)
+        
         
     
     context = {
@@ -1329,13 +1427,24 @@ def DeleteMessages(request):
     msgs = []
 
     if request.method == "POST":
-        itemlist = (request.POST.get('itemlist')).split(',')    
-        if itemlist is not None:
-            for items in itemlist:
-                try:
-                    MessageChatter.objects.get(id=int(items)).delete()
-                except Exception as e:
-                    status=400
+        itemlist = (request.POST.get('itemlist')).split(',')   
+        if request.user.is_superuser:
+            if itemlist is not None:
+                for items in itemlist:
+                    try:
+                        MessageChatter.objects.get(id=int(items)).delete()
+                    except Exception as e:
+                        status=400
+        elif request.user.is_authenticated:
+            if itemlist is not None:
+                for items in itemlist:
+                    try:
+                        MessageChatter.objects.get(id=int(items),sender=request.user.id).delete()
+                        status=200
+                    except Exception as e:
+                        status=400
+
+        
 
     context = {            
             'message':message,
@@ -1353,6 +1462,7 @@ def getsellermessages(request):
     message = "Success"
     status=200
     msgs = []
+    totalrecords=0
 
     if request.method == "POST":
         request.POST._mutable = True
@@ -1374,6 +1484,15 @@ def getsellermessages(request):
 
         if request_query == "all":
             messagesinstance = MessageChatter.objects.filter(isgrouped='yes',receivertype='creator')
+        elif request_query == "inbox":
+            paginator = PageNumberPagination()
+            paginator.page_size = int(request.GET.get('perpages',5))
+            totalrecords = MessageChatter.objects.filter(sender=request.user.id).count()
+
+            messagesinstance1 = MessageChatter.objects.filter(sender=request.user.id)    
+
+            messagesinstance = paginator.paginate_queryset(messagesinstance1, request)
+            
         else:
             messagesinstance = MessageChatter.objects.filter(receiver=request.user.id,isgrouped='no')
 
@@ -1394,7 +1513,8 @@ def getsellermessages(request):
         context = {
             'mesgs':msgs,
             'message':message,
-            'status':status
+            'status':status,
+            'totalrecords':totalrecords
         }
     return Response(context)
 

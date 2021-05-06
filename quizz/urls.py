@@ -35,6 +35,7 @@ urlpatterns = [
     
     path('admin/requestsaveproduct/',views.requestsaveproduct,name='requestsaveproduct'),
     path('admin/getProductsall/',views.getProductsall,name='getProductsall'),
+    path('admin/getproductsofcreator/',views.getProductsofcreator,name='getProductsofcreator'),
     path('admin/getproductsallbyusers/',views.getProductsallbyUsers,name='getProductsallbyUsers'),
 
     path('admin/getproductbyid/',views.getProductById,name='getProductById'),
@@ -62,6 +63,10 @@ urlpatterns = [
     path('admin/getproductsallbagged/',views.getProductsallbagged,name='getProductsallbagged'),
     path('admin/getproductsallliked/',views.getProductsallliked,name='getProductsallliked'),
     path('admin/productstatus/',views.productstatus,name='productstatus'),
+    path('admin/deleteproduct/',views.deleteproduct,name='deleteproduct'),
+
+
+    
 
     # Admin Copy paths
     path('admin/getproductsalllikedbyid/',views.getProductsalllikedbyuserid,name='getProductsalllikedbyuserid'),

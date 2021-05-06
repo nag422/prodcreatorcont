@@ -3,7 +3,7 @@ from django.contrib.auth.models import User
 from django.template.defaultfilters import slugify
 from django.db.models.signals import post_save
 from django.dispatch import receiver
-
+from django.core.validators import FileExtensionValidator
 
 class Profile(models.Model):
     user_ptr = models.OneToOneField(
@@ -87,7 +87,7 @@ class Content(models.Model):
     numbofvideos = models.TextField(blank=True)
 
     thumbnail = models.ImageField(upload_to='images/', default='images/default.png')
-    videofile =  models.FileField(upload_to='uploads/')
+    videofile =  models.FileField(upload_to='uploads/', validators=[FileExtensionValidator(['mp4', 'avi', 'webm'])],)
     thumbnail1 = models.ImageField(upload_to='images/', default='images/default.png')
     thumbnail2 = models.ImageField(upload_to='images/', default='images/default.png')
     thumbnail3 = models.ImageField(upload_to='images/', default='images/default.png')
@@ -266,6 +266,13 @@ class MessageChatter(models.Model):
     
     def __str__(self):
         return f"{self.sender}"
+
+class MessageViewed(models.Model):
+    messageki = models.ForeignKey(MessageChatter, blank=True, related_name='messageki', on_delete=models.CASCADE)
+    userdata = models.ForeignKey(User, blank=True, related_name='userdata', on_delete=models.CASCADE)
+    is_viewed = models.BooleanField(default=False)
+    def __str__(self):
+        return f"{self.userdata}"
 
 class MessageRequest(models.Model):
     
