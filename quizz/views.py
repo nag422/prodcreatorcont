@@ -81,7 +81,7 @@ def dashboardView(request):
                 usercount = User.objects.filter(date_joined = datetime.datetime(weekdaysexplorer.year, weekdaysexplorer.month, weekdaysexplorer.day)).count()
                 usersarray.append(int(usercount))
 
-                productcount = Content.objects.filter(created = datetime.datetime(weekdaysexplorer.year, weekdaysexplorer.month, weekdaysexplorer.day)).count()
+                productcount = Content.objects.filter(created = datetime.date(weekdaysexplorer.year, weekdaysexplorer.month, weekdaysexplorer.day)).count()
                 contentarray.append(int(productcount))
 
                 weekdays.append((str(weekdaysexplorer.day) + str(monthsnamearray[weekdaysexplorer.month])))
@@ -1284,10 +1284,10 @@ def save_product_by_admin(request):
 @permission_classes([AllowAny,])
 def NotifyGetter(request):
     message = ''
-    status = ''
-    error = ''
+    status = 200
+    error = False
     notifications = []
-    data = ContentSaveNotifyer.objects.all()
+    data = ContentSaveNotifyer.objects.order_by('-id')[:10]
     serializer = ContentSaveNotifyerSerializer(data,many=True)
     serializerdata = serializer.data
     for proid in serializerdata:
@@ -1295,14 +1295,17 @@ def NotifyGetter(request):
             productname = Content.objects.get(id=int(proid['productid']))
             prodtitle = productname.title
             proid['productname'] = prodtitle
-            dt = Likedproducts.objects.filter(post=productname.id).exists()
-            df = Boughtedproducts.objects.filter(post=productname.id).exists()
+            
+            dt = Likedproducts.objects.filter(post=productname.id,user=request.user.id).exists()
+            df = Boughtedproducts.objects.filter(post=productname.id,user=request.user.id).exists()
             
             proid['isliked'] = dt
             proid['isfavored'] = df
             notifications.append(proid)
-        except:
-            prodtitle='-----'
+        except Exception as e:
+            message = str(e)
+            status = 400
+            prodtitle='---Title not Available---'
 
         
         
@@ -1582,7 +1585,7 @@ def getsellermessages(request):
             totalrecords = MessageChatter.objects.filter(isgrouped='yes',receivertype='creator').count()
             messagesinstance1 = MessageChatter.objects.filter(isgrouped='yes',receivertype='creator')
             messagesinstance = paginator.paginate_queryset(messagesinstance1, request)
-
+            serializer = MessageChatterSerializer(messagesinstance,many=True)
         elif request_query == "inbox":
            
             # paginator.page = (int(request.GET.get('currentpage',1)))+1
@@ -1591,25 +1594,37 @@ def getsellermessages(request):
             messagesinstance1 = MessageChatter.objects.filter(sender=request.user.id)    
 
             messagesinstance = paginator.paginate_queryset(messagesinstance1, request)
+            serializer = MessageChatterSerializer(messagesinstance,many=True)
+
+        elif request_query == "requests":
+
+            totalrecords = ProductRequest.objects.filter(author=request.user).count()
+            requestproductdata1 = ProductRequest.objects.filter(author=request.user)
+            requestproductdata = paginator.paginate_queryset(requestproductdata1, request)
+            serializer = ProductRequestSerializer(requestproductdata,many=True) 
+
+            for every in serializer.data:
+                every['msg'] = str(every['title']) + '---' + str(every['category'])
+                msgs.append(dict(every)) 
             
         else:
-            totalrecords = MessageChatter.objects.filter(receiver=request.user.id,isgrouped='no').count()
-            messagesinstance1 = MessageChatter.objects.filter(receiver=request.user.id,isgrouped='no')
+            totalrecords = MessageChatter.objects.filter(receiver=str(request.user.id)).count()
+            messagesinstance1 = MessageChatter.objects.filter(receiver=str(request.user.id))
             messagesinstance = paginator.paginate_queryset(messagesinstance1, request)
 
-        serializer = MessageChatterSerializer(messagesinstance,many=True)
+            serializer = MessageChatterSerializer(messagesinstance,many=True)
         
+        if request_query != "requests":
+            for every in serializer.data:
+                sendername = User.objects.get(id=int(every['sender'])).username
+                try:
+                    receiverrname = User.objects.get(id=int(every['receiver'])).username
+                except:
+                    receiverrname = "----"
 
-        for every in serializer.data:
-            sendername = User.objects.get(id=int(every['sender'])).username
-            try:
-                receiverrname = User.objects.get(id=int(every['receiver'])).username
-            except:
-                receiverrname = "----"
-
-            every['sendername'] = str(sendername)
-            every['receivername'] = receiverrname
-            msgs.append(dict(every))
+                every['sendername'] = str(sendername)
+                every['receivername'] = receiverrname
+                msgs.append(dict(every))
 
         context = {
             'mesgs':msgs,

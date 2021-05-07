@@ -31,7 +31,7 @@ from django.db import connection
 from .forms import RegistrationForm, UserEditForm
 from django.views.decorators.csrf import ensure_csrf_cookie, csrf_protect,csrf_exempt
 from .utils import DatabaseDynamic,SessionHandle
-from quizz.models import Profile,AssignedUsersGroup,ProductGroup,MessageChatter
+from quizz.models import Profile,AssignedUsersGroup,ProductGroup,MessageChatter,ContentSaveNotifyer
 from .serializers import ProfileSerializer,UserSerializer,CustomUserSerializer
 from rest_framework import permissions
 from rest_framework.views import APIView
@@ -168,9 +168,11 @@ def WhoAmi(request):
             response['access_token'] = token.key
 
             if Profile.objects.filter(user_ptr=request.user,content="creator").exists():
-                messagecount = MessageChatter.objects.filter(receivertype='creator').count()
+                messagecount = MessageChatter.objects.filter(receivertype='creator',receiver=str(request.user.id)).count()
             if Profile.objects.filter(user_ptr=request.user,content="producer").exists():
-                messagecount = MessageChatter.objects.filter(receivertype='producer').count()
+                notifycount = ContentSaveNotifyer.objects.all()[:10]
+                messagecount = MessageChatter.objects.filter(receivertype='producer',receiver=str(request.user.id)).count()
+                response['notificationcount'] = len(notifycount)
             response['messagecount'] = messagecount
 
         except Exception as e:
