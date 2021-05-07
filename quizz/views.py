@@ -14,7 +14,7 @@ from .forms import AddForm,ProductForm,ProductRequestForm,GroupForm,MessageInbox
 from django.views.decorators.csrf import ensure_csrf_cookie, csrf_protect,csrf_exempt
 import json
 from authentication.utils import DatabaseDynamic
-from .serializers import ProductsSerializer,ProductAssignsSerializer,ProductGroupSerializer,MessageInboxSerializer,MessageChatterSerializer,ContentSaveNotifyerSerializer,ProductRequestSerializer
+from .serializers import ProductsSerializer,ProductAssignsSerializer,ProductGroupSerializer,MessageInboxSerializer,MessageChatterSerializer,ContentSaveNotifyerSerializer,ProductRequestSerializer,LikedproductsSerializer,BoughtedproductsSerializer
 from authentication.serializers import CustomUserSerializer
 import uuid
 from rest_framework.decorators import api_view, schema,permission_classes
@@ -59,6 +59,7 @@ def dashboardView(request):
     error=""
     likedcount = 0
     interestcount =0
+    messagecount=0
     usersarray =[]
     contentarray=[]
     weekdays = []
@@ -88,6 +89,7 @@ def dashboardView(request):
             sellerenquiries = MessageChatter.objects.filter(sender=request.user.id).count()
             likedcount = Likedproducts.objects.filter(user=request.user.id).count()
             interestcount = Boughtedproducts.objects.filter(user=request.user.id).count()
+            
         
         
         
@@ -108,6 +110,7 @@ def dashboardView(request):
         'usersarray':usersarray,
         'contentarray':contentarray,
         'weekdays':weekdays,
+        'messagecount':messagecount,
         'error':error
         
 
@@ -483,33 +486,44 @@ def requestsaveproduct(request):
         return JsonResponse({'message':message,'status':status,'error':error})
 
 @csrf_exempt
+@api_view(['GET','POST'])
 def getProductsall(request):
     product = []
     error=False,
     status=200
-    try:
-        pageno = request.GET['page']
+    totalrecords=0
+
+    paginator = PageNumberPagination()
+    paginator.page_size = 8
+    paginator.page_query_param = 'page'
+
+    # try:
+    #     pageno = request.GET['page']
         
-    except:
-        pageno = 0
+    # except:
+    #     pageno = 0
     # allobjects = Content.objects.filter(is_active=True)[int(pageno):2]
+    totalrecords = Content.objects.filter(is_active=True).count()
     allobjects = Content.objects.filter(is_active=True)
+    contentinstance = paginator.paginate_queryset(allobjects, request)
     
-    
-    for i in allobjects.values():
-        dt = Likedproducts.objects.filter(post=i['id']).exists()
-        df = Boughtedproducts.objects.filter(post=i['id']).exists()
+    serializer = ProductsSerializer(contentinstance,many=True)
+
+    for i in serializer.data:
+        dt = Likedproducts.objects.filter(post=i['id'],user=request.user).exists()
+        df = Boughtedproducts.objects.filter(post=i['id'],user=request.user).exists()
         
         i['isliked'] = dt
         i['isfavored'] = df
-        i['customauthor'] = (User.objects.get(pk=i['author_id']).username).capitalize()
+        i['customauthor'] = (User.objects.get(pk=i['author']).username).capitalize()
         
         product.append(i)
     
     response = {
         'obs':(product),
         'status':200,
-        'error':error
+        'error':error,
+        'totalrecords':totalrecords
     }
     return JsonResponse(response)
 
@@ -519,29 +533,38 @@ def getProductsofcreator(request):
     product = []
     error=False,
     status=200
-    try:
-        pageno = request.GET['page']
+    totalrecords=0
+
+    paginator = PageNumberPagination()
+    paginator.page_size = 8
+    paginator.page_query_param = 'page'
+    # try:
+    #     pageno = request.GET['page']
         
-    except:
-        pageno = 0
+    # except:
+    #     pageno = 0
     # allobjects = Content.objects.filter(is_active=True)[int(pageno):2]
-    allobjects = Content.objects.filter(author=request.user)
+    totalrecords = Content.objects.filter(author=request.user).count()
+    allobjects = Content.objects.filter(author=request.user)    
+    contentinstance = paginator.paginate_queryset(allobjects, request)
+
+    serializer = ProductsSerializer(contentinstance,many=True)
     
-    
-    for i in allobjects.values():
+    for i in serializer.data:
         dt = Likedproducts.objects.filter(post=i['id']).exists()
         df = Boughtedproducts.objects.filter(post=i['id']).exists()
         
         i['isliked'] = dt
         i['isfavored'] = df
-        i['customauthor'] = (User.objects.get(pk=i['author_id']).username).capitalize()
+        i['customauthor'] = (User.objects.get(pk=i['author']).username).capitalize()
         
         product.append(i)
     
     response = {
         'obs':(product),
         'status':200,
-        'error':error
+        'error':error,
+        'totalrecords':totalrecords
     }
     return JsonResponse(response)
 
@@ -608,26 +631,34 @@ def getProductsallbyUsers(request):
     product = []
     error=False,
     status=200
+    totalrecords=0
 
+    paginator = PageNumberPagination()
+    paginator.page_size = 8
+    paginator.page_query_param = 'page'
+
+    totalrecords = ProductAssigns.objects.filter(users__in=[int(request.user.id)]).count()
     groupbyProducts = ProductAssigns.objects.filter(users__in=[int(request.user.id)])
     # print(groupbyProducts.get_products())
-    serializer = ProductAssignsSerializer(groupbyProducts,many=True)
+    contentinstance = paginator.paginate_queryset(groupbyProducts, request)
+    serializer = ProductAssignsSerializer(contentinstance,many=True)
     # print(serializer.data)
     for i in serializer.data:
         contentvalues = Content.objects.filter(id=i['products'])
         for j in contentvalues.values():          
 
-            dt = Likedproducts.objects.filter(post=j['id']).exists()
-            df = Boughtedproducts.objects.filter(post=j['id']).exists()
+            dt = Likedproducts.objects.filter(post=j['id'],user=request.user).exists()
+            df = Boughtedproducts.objects.filter(post=j['id'],user=request.user).exists()
             
             j['isliked'] = dt
             j['isfavored'] = df
             product.append(dict(j))
     
     response = {
-        'obs':(product),
+        'obs':(product) if len(product) > 0  else [],
         'status':200,
-        'error':error
+        'error':error,
+        'totalrecords':totalrecords
     }
     return JsonResponse(response)
 # Admin Copy
@@ -699,33 +730,58 @@ def getUploadsallbyusersbyid(request):
     return JsonResponse(response)
 
 @csrf_exempt
+@api_view(['GET','POST'])
 def getProductsallliked(request):
     product = []
     error=False,
     status=200
-    allobjects = Likedproducts.objects.all()
+    totalrecords=0
 
-    
-    for i in allobjects.values():        
-        df = Content.objects.filter(id=i['post_id'])
+    paginator = PageNumberPagination()
+    paginator.page_size = 8
+    paginator.page_query_param = 'page'
+
+    if request.user.is_superuser:
+        totalrecords = Likedproducts.objects.all().count()
+        allobjects = Likedproducts.objects.all()
+    else:
+        totalrecords = Likedproducts.objects.filter(user=request.user).count()
+        allobjects = Likedproducts.objects.filter(user=request.user)
+
+    contentinstance = paginator.paginate_queryset(allobjects, request)
+    serializer = LikedproductsSerializer(contentinstance,many=True)
+
+    for i in serializer.data:        
+        df = Content.objects.filter(id=i['post'])
         for every in df.values():
-            dt = Likedproducts.objects.filter(post=every['id']).exists()
-            df = Boughtedproducts.objects.filter(post=every['id']).exists()
-            every['isliked'] = dt
-            every['isfavored'] = df
+            if request.user.is_superuser:
+                dt = Likedproducts.objects.filter(post=every['id']).exists()
+                df = Boughtedproducts.objects.filter(post=every['id']).exists()
+                every['isliked'] = dt
+                every['isfavored'] = df
+
+                every['likedby'] = i['user_id']           
+
+                every['likedbyname'] = User.objects.get(id=int(i['user_id'])).username
+            else:
+                every['isliked'] = True
+                every['isfavored'] = True
+                every['likedby'] = request.user.id
+                every['likedbyname'] = request.user.username
+
+
 
             every['customauthor'] = User.objects.get(id=int(every['author_id'])).username
-            every['likedby'] = i['user_id']           
-
-            every['likedbyname'] = User.objects.get(id=int(i['user_id'])).username
+            
             product.append(every)
 
 
     
     response = {
-        'obs':(product),
+        'obs':(product) if len(product) > 0 else [],
         'status':200,
-        'error':error
+        'error':error,
+        'totalrecords':totalrecords
     }
     return JsonResponse(response)
 
@@ -758,30 +814,56 @@ def getProductsalllikedbyuserid(request):
 
 
 @csrf_exempt
+@api_view(['GET','POST'])
 def getProductsallbagged(request):
     product = []
     error=False,
     status=200
-    allobjects = (Boughtedproducts.objects.all())
+    totalrecords=0
+
+    paginator = PageNumberPagination()
+    paginator.page_size = 8
+    paginator.page_query_param = 'page'
+
 
     
-    for i in allobjects.values():        
-        df = Content.objects.filter(id=i['post_id'])
+
+    if request.user.is_superuser:
+        totalrecords = Boughtedproducts.objects.all().count()
+        allobjects = Boughtedproducts.objects.all()
+    else:
+        totalrecords = Boughtedproducts.objects.filter(user=request.user).count()
+        allobjects = Boughtedproducts.objects.filter(user=request.user)
+
+    contentinstance = paginator.paginate_queryset(allobjects, request)
+    serializer = BoughtedproductsSerializer(contentinstance,many=True)
+    
+    for i in serializer.data:        
+        df = Content.objects.filter(id=i['post'])
         for every in df.values():
-            dt = Likedproducts.objects.filter(post=every['id']).exists()
-            df = Boughtedproducts.objects.filter(post=every['id']).exists()
-            every['isliked'] = dt
-            every['isfavored'] = df
+            if request.user.is_superuser:
+                dt = Likedproducts.objects.filter(post=every['id']).exists()
+                df = Boughtedproducts.objects.filter(post=every['id']).exists()
+                every['isliked'] = dt
+                every['isfavored'] = df
+                every['likedby'] = i['user_id']
+                every['likedbyname'] = User.objects.get(id=int(i['user_id'])).username
+            else:
+                every['isliked'] = True
+                every['isfavored'] = True
+                every['likedby'] = request.user.id
+                every['likedbyname'] = request.user.username
+            
             every['customauthor'] = User.objects.get(id=int(every['author_id'])).username
-            every['likedby'] = i['user_id']
-            every['likedbyname'] = User.objects.get(id=int(i['user_id'])).username
+            
             product.append(every)
 
 
     response = {
-        'obs':(product),
+        'obs':(product) if len(product) > 0  else [],
         'status':200,
-        'error':error
+        'error':error,
+        'totalrecords':totalrecords
     }
     return JsonResponse(response)
 
@@ -937,17 +1019,18 @@ def deleteGroups(request):
     return JsonResponse(response)
 
 @csrf_exempt
+@api_view(['GET','POST'])
 def addliketoproduct(request):
     postid = request.POST.get('id')
     status = 200
     message = ""
     
     try:
-        dt = Likedproducts.objects.filter(post=int(postid)).first()
+        dt = Likedproducts.objects.filter(post=int(postid),user=request.user).first()
         dt.delete()
         message = "unliked"
     except:
-        Likedproducts.objects.create(post=Content.objects.get(id=int(postid)),user=User.objects.get(id=1))
+        Likedproducts.objects.create(post=Content.objects.get(id=int(postid)),user=request.user)
         message = "liked"
     context = {
         'status':status,
@@ -958,17 +1041,18 @@ def addliketoproduct(request):
 
 
 @csrf_exempt
+@api_view(['GET','POST'])
 def addboughtproduct(request):
     postid = request.POST.get('id')
     status = 200
     message = ""
     
     try:
-        dt = Boughtedproducts.objects.filter(post=int(postid)).first()
+        dt = Boughtedproducts.objects.filter(post=int(postid),user=request.user).first()
         dt.delete()
         message = "removedbuy"
     except:
-        Boughtedproducts.objects.create(post=Content.objects.get(id=int(postid)),user=User.objects.get(id=1))
+        Boughtedproducts.objects.create(post=Content.objects.get(id=int(postid)),user=request.user)
         message = "addedbuy"
     context = {
         'status':status,
@@ -1425,6 +1509,7 @@ def DeleteMessages(request):
     message = "Success"
     status=200
     msgs = []
+    query_word_get = request.POST.get('q')
 
     if request.method == "POST":
         itemlist = (request.POST.get('itemlist')).split(',')   
@@ -1432,14 +1517,20 @@ def DeleteMessages(request):
             if itemlist is not None:
                 for items in itemlist:
                     try:
-                        MessageChatter.objects.get(id=int(items)).delete()
+                        if query_word_get != "requests":
+                            MessageChatter.objects.get(id=int(items)).delete()
+                        else:
+                            ProductRequest.objects.get(id=int(items)).delete()                            
                     except Exception as e:
                         status=400
         elif request.user.is_authenticated:
             if itemlist is not None:
                 for items in itemlist:
                     try:
-                        MessageChatter.objects.get(id=int(items),sender=request.user.id).delete()
+                        if query_word_get != "requests":
+                            MessageChatter.objects.get(id=int(items),sender=request.user.id).delete()
+                        else:
+                            ProductRequest.objects.get(id=int(items),author=request.user).delete()
                         status=200
                     except Exception as e:
                         status=400
@@ -1482,11 +1573,19 @@ def getsellermessages(request):
     if request.method == "GET":
         request_query = request.GET.get('q')
 
+        paginator = PageNumberPagination()
+
+        paginator.page_size = int(request.GET.get('perpages',5))
+        paginator.page_query_param = 'currentpage'
+
         if request_query == "all":
-            messagesinstance = MessageChatter.objects.filter(isgrouped='yes',receivertype='creator')
+            totalrecords = MessageChatter.objects.filter(isgrouped='yes',receivertype='creator').count()
+            messagesinstance1 = MessageChatter.objects.filter(isgrouped='yes',receivertype='creator')
+            messagesinstance = paginator.paginate_queryset(messagesinstance1, request)
+
         elif request_query == "inbox":
-            paginator = PageNumberPagination()
-            paginator.page_size = int(request.GET.get('perpages',5))
+           
+            # paginator.page = (int(request.GET.get('currentpage',1)))+1
             totalrecords = MessageChatter.objects.filter(sender=request.user.id).count()
 
             messagesinstance1 = MessageChatter.objects.filter(sender=request.user.id)    
@@ -1494,7 +1593,9 @@ def getsellermessages(request):
             messagesinstance = paginator.paginate_queryset(messagesinstance1, request)
             
         else:
-            messagesinstance = MessageChatter.objects.filter(receiver=request.user.id,isgrouped='no')
+            totalrecords = MessageChatter.objects.filter(receiver=request.user.id,isgrouped='no').count()
+            messagesinstance1 = MessageChatter.objects.filter(receiver=request.user.id,isgrouped='no')
+            messagesinstance = paginator.paginate_queryset(messagesinstance1, request)
 
         serializer = MessageChatterSerializer(messagesinstance,many=True)
         
@@ -1527,6 +1628,7 @@ def getbuyermessages(request):
     message = "Success"
     status=200
     msgs = []
+    totalrecords=0
 
     if request.method == "POST":
         request.POST._mutable = True
@@ -1546,18 +1648,42 @@ def getbuyermessages(request):
     if request.method == "GET":
         request_query = request.GET.get('q')
 
+        paginator = PageNumberPagination()
+
+        paginator.page_size = int(request.GET.get('perpages',5))
+        paginator.page_query_param = 'currentpage'
+
+
         if request_query == "all":
-            messagesinstance = MessageChatter.objects.filter(isgrouped='yes',receivertype='producer')
+            totalrecords = MessageChatter.objects.filter(isgrouped='yes',receivertype='producer').count()
+            messagesinstance1 = MessageChatter.objects.filter(isgrouped='yes',receivertype='producer')
+            messagesinstance = paginator.paginate_queryset(messagesinstance1, request)
+            serializer = MessageChatterSerializer(messagesinstance,many=True)    
+        elif request_query == "inbox":
+           
+            # paginator.page = (int(request.GET.get('currentpage',1)))+1
+            totalrecords = MessageChatter.objects.filter(sender=request.user.id).count()
+
+            messagesinstance1 = MessageChatter.objects.filter(sender=request.user.id)    
+
+            messagesinstance = paginator.paginate_queryset(messagesinstance1, request)
             serializer = MessageChatterSerializer(messagesinstance,many=True)
+
         elif request_query == "requests":
-            requestproductdata = ProductRequest.objects.filter(author=request.user)
+
+            totalrecords = ProductRequest.objects.filter(author=request.user).count()
+            requestproductdata1 = ProductRequest.objects.filter(author=request.user)
+            requestproductdata = paginator.paginate_queryset(requestproductdata1, request)
             serializer = ProductRequestSerializer(requestproductdata,many=True) 
+
             for every in serializer.data:
                 every['msg'] = str(every['title']) + '---' + str(every['category'])
                 msgs.append(dict(every)) 
 
         else:
-            messagesinstance = MessageChatter.objects.filter(receiver=request.user.id,isgrouped='no')
+            totalrecords = MessageChatter.objects.filter(receiver=request.user.id,isgrouped='no').count()
+            messagesinstance1 = MessageChatter.objects.filter(receiver=request.user.id,isgrouped='no')
+            messagesinstance = paginator.paginate_queryset(messagesinstance1, request)
 
             serializer = MessageChatterSerializer(messagesinstance,many=True)
         
@@ -1574,9 +1700,10 @@ def getbuyermessages(request):
                 msgs.append(dict(every))
 
         context = {
-            'mesgs':msgs,
+            'mesgs':msgs if len(msgs) > 0  else [],
             'message':message,
-            'status':status
+            'status':status,
+            'totalrecords':totalrecords
         }
     return Response(context)
 

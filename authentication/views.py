@@ -31,7 +31,7 @@ from django.db import connection
 from .forms import RegistrationForm, UserEditForm
 from django.views.decorators.csrf import ensure_csrf_cookie, csrf_protect,csrf_exempt
 from .utils import DatabaseDynamic,SessionHandle
-from quizz.models import Profile,AssignedUsersGroup,ProductGroup
+from quizz.models import Profile,AssignedUsersGroup,ProductGroup,MessageChatter
 from .serializers import ProfileSerializer,UserSerializer,CustomUserSerializer
 from rest_framework import permissions
 from rest_framework.views import APIView
@@ -166,6 +166,13 @@ def WhoAmi(request):
             response = serializer.data
             token, created = Token.objects.get_or_create(user=request.user)
             response['access_token'] = token.key
+
+            if Profile.objects.filter(user_ptr=request.user,content="creator").exists():
+                messagecount = MessageChatter.objects.filter(receivertype='creator').count()
+            if Profile.objects.filter(user_ptr=request.user,content="producer").exists():
+                messagecount = MessageChatter.objects.filter(receivertype='producer').count()
+            response['messagecount'] = messagecount
+
         except Exception as e:
             response['access_token'] = str(e)
         # Dummy
