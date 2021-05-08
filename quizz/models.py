@@ -289,4 +289,10 @@ class MessageRequest(models.Model):
     
     def __str__(self):
         return f"{self.sender}"
+
+class Contentcategorynumbertoname(models.Model):
+    numberval = models.CharField(max_length=255,blank=True)
+    nameval =  models.CharField(max_length=255,blank=True)
+    def __str__(self):
+        return f"{self.nameval}"
     

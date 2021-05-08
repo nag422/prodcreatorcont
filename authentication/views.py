@@ -167,12 +167,24 @@ def WhoAmi(request):
             token, created = Token.objects.get_or_create(user=request.user)
             response['access_token'] = token.key
 
-            if Profile.objects.filter(user_ptr=request.user,content="creator").exists():
+            if request.user.is_superuser:
+                notifycount = ContentSaveNotifyer.objects.all().count()
+                messagecount = MessageChatter.objects.all().count()
+                response['notificationcount'] = notifycount
+                
+            elif request.user.is_staff:
+                notifycount = ContentSaveNotifyer.objects.all().count()
+                messagecount = MessageChatter.objects.all().count()
+                response['notificationcount'] = notifycount
+
+            elif Profile.objects.filter(user_ptr=request.user,content="creator").exists():
                 messagecount = MessageChatter.objects.filter(receivertype='creator',receiver=str(request.user.id)).count()
-            if Profile.objects.filter(user_ptr=request.user,content="producer").exists():
+                response['notificationcount'] = 0
+            elif Profile.objects.filter(user_ptr=request.user,content="producer").exists():
                 notifycount = ContentSaveNotifyer.objects.all()[:10]
                 messagecount = MessageChatter.objects.filter(receivertype='producer',receiver=str(request.user.id)).count()
                 response['notificationcount'] = len(notifycount)
+
             response['messagecount'] = messagecount
 
         except Exception as e:

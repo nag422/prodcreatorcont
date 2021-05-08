@@ -2,7 +2,7 @@ from django.contrib import admin
 from . import models
 from quizz.models import (Profile,Books,Product,ProductAssigns,
 Content,ProductRequest,ProductGroup,Likedproducts,Boughtedproducts,AssignedUsersGroup,MessageInbox,
-ContentSaveNotifyer,MessageChatter
+ContentSaveNotifyer,MessageChatter,Contentcategorynumbertoname
 )
 
 admin.site.register(Profile)
@@ -15,6 +15,7 @@ admin.site.register(ProductAssigns)
 admin.site.register(MessageInbox)
 admin.site.register(ContentSaveNotifyer)
 admin.site.register(MessageChatter)
+admin.site.register(Contentcategorynumbertoname)
 
 
 

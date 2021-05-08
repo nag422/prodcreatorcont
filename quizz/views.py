@@ -1,7 +1,7 @@
 from django.shortcuts import render,get_object_or_404
 from django.http import HttpResponse,JsonResponse
 from django.middleware.csrf import get_token
-from quizz.models import Profile,Books,Content,ProductGroup,Likedproducts,Boughtedproducts,AssignedUsersGroup,ProductAssigns,MessageInbox,ContentSaveNotifyer,MessageChatter,MessageRequest,ProductRequest
+from quizz.models import Profile,Books,Content,ProductGroup,Likedproducts,Boughtedproducts,AssignedUsersGroup,ProductAssigns,MessageInbox,ContentSaveNotifyer,MessageChatter,MessageRequest,ProductRequest,Contentcategorynumbertoname
 from django.contrib.auth.models import User
 from django.views.generic.base import TemplateView,RedirectView
 from django.views.generic.detail import DetailView
@@ -663,6 +663,7 @@ def getProductsallbyUsers(request):
     return JsonResponse(response)
 # Admin Copy
 @csrf_exempt
+@api_view(['GET','POST'])
 def getProductsallbyUsersbyid(request):
     product = []
     error=False,
@@ -683,15 +684,15 @@ def getProductsallbyUsersbyid(request):
     serializer = ProductAssignsSerializer(contentinstance,many=True)
     # print(serializer.data)
     for i in serializer.data:
-        # contentvalues = Content.objects.filter(id=i['products'])
-        # for j in contentvalues.values():          
+        contentvalues = Content.objects.filter(id=int(i['products']))
+        for j in contentvalues.values():          
 
-        #     dt = Likedproducts.objects.filter(post=j['id']).exists()
-        #     df = Boughtedproducts.objects.filter(post=j['id']).exists()
+            dt = Likedproducts.objects.filter(post=j['id']).exists()
+            df = Boughtedproducts.objects.filter(post=j['id']).exists()
             
-        #     j['isliked'] = dt
-        #     j['isfavored'] = df
-            product.append(dict(i))
+            j['isliked'] = dt
+            j['isfavored'] = df
+            product.append(dict(j))
     
     response = {
         'obs':(product) if len(product) > 0 else [],
@@ -737,7 +738,7 @@ def getUploadsallbyusersbyid(request):
     
     response = {
         'obs':(product) if len(product) > 0 else [],
-        'status':200,
+        'status':status,
         'error':error,
         'totalrecords':totalrecords
     }
@@ -793,7 +794,7 @@ def getProductsallliked(request):
     
     response = {
         'obs':(product) if len(product) > 0 else [],
-        'status':200,
+        'status':status,
         'error':error,
         'totalrecords':totalrecords
     }
@@ -801,28 +802,37 @@ def getProductsallliked(request):
 
 # Admin likedproducts
 @csrf_exempt
+@api_view(['GET','POST'])
 def getProductsalllikedbyuserid(request):
     product = []
     error=False,
     status=200
+    totalrecords=0
     userid = request.GET.get('id')
-    pagenumber = request.GET.get('page')
 
+    paginator = PageNumberPagination()
+    paginator.page_size = 8
+    paginator.page_query_param = 'page'
+
+    totalrecords = Likedproducts.objects.filter(user = int(userid)).count()
     allobjects = Likedproducts.objects.filter(user = int(userid))
 
+    contentinstance = paginator.paginate_queryset(allobjects, request)
+    serializer = LikedproductsSerializer(contentinstance,many=True)
     
-    for i in allobjects.values():        
-        df = Content.objects.filter(id=i['post_id'])
+    for i in serializer.data:        
+        df = Content.objects.filter(id=i['post'])
         for every in df.values():
-            every['customauthor'] = User.objects.get(id=int(every['author_id'])).username
-            every['likedby'] = i['user_id']
-            every['likedbyname'] = User.objects.get(id=int(i['user_id'])).username
+            # every['customauthor'] = User.objects.get(id=int(every['author_id'])).username
+            # every['likedby'] = i['user_id']
+            # every['likedbyname'] = User.objects.get(id=int(i['user_id'])).username
             product.append(every)
     
     response = {
-        'obs':(product),
-        'status':200,
-        'error':error
+        'obs':(product) if len(product) > 0 else [],
+        'status':status,
+        'error':error,
+        'totalrecords':totalrecords
     }
     return JsonResponse(response)
 
@@ -875,7 +885,7 @@ def getProductsallbagged(request):
 
     response = {
         'obs':(product) if len(product) > 0  else [],
-        'status':200,
+        'status':status,
         'error':error,
         'totalrecords':totalrecords
     }
@@ -883,28 +893,40 @@ def getProductsallbagged(request):
 
 # Admin baggedproducts
 @csrf_exempt
+@api_view(['GET','POST'])
 def getProductsallbaggedbyuserid(request):
     product = []
     error=False,
     status=200
+    totalrecords=0
+
     userid = request.GET.get('id')
-    pagenumber = request.GET.get('page')
-    allobjects = (Boughtedproducts.objects.filter(user=int(userid)))
+    
+    paginator = PageNumberPagination()
+    paginator.page_size = 8
+    paginator.page_query_param = 'page'
+
+    totalrecords = Boughtedproducts.objects.filter(user=int(userid)).count()
+    allobjects = Boughtedproducts.objects.filter(user=int(userid))
+
+    contentinstance = paginator.paginate_queryset(allobjects, request)
+    serializer = BoughtedproductsSerializer(contentinstance,many=True)
 
     
-    for i in allobjects.values():        
-        df = Content.objects.filter(id=i['post_id'])
+    for i in serializer.data:        
+        df = Content.objects.filter(id=i['post'])
         for every in df.values():
-            every['customauthor'] = User.objects.get(id=int(every['author_id'])).username
-            every['likedby'] = i['user_id']
-            every['likedbyname'] = User.objects.get(id=int(i['user_id'])).username
+            # every['customauthor'] = User.objects.get(id=int(every['author_id'])).username
+            # every['likedby'] = i['user']
+            # every['likedbyname'] = User.objects.get(id=int(i['user'])).username
             product.append(every)
 
 
     response = {
-        'obs':(product),
-        'status':200,
-        'error':error
+        'obs':(product) if len(product) > 0 else [],
+        'status':status,
+        'error':error,
+        'totalrecords':totalrecords
     }
     return JsonResponse(response)
 
@@ -1482,7 +1504,7 @@ def GetAdminMessages(request):
             
 
                 every['receivername'] = 'superuser'
-                every['msg'] = str(every['title']) + '---' + str(every['category'])
+                every['msg'] = str(every['title']) + '---' + str(Contentcategorynumbertoname.objects.get(numberval = str(every['category'])))
                 msgs.append(dict(every)) 
 
         else:
