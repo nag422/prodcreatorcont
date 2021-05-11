@@ -1,6 +1,8 @@
 from django.urls import path
 from django.views.generic import TemplateView
 from django.contrib.auth import views as auth_views
+from django.views.decorators.csrf import csrf_exempt
+
 # have to import forms for auth_views
 from . import views
 app_name="authentication"
@@ -23,11 +25,21 @@ urlpatterns = [
 
     # Reset password
 
-    path('reset/', auth_views.PasswordResetView.as_view(), name='pwdreset'),
-    # path('password_reset_confirm/<uidb64>/<token>', auth_views.PasswordResetConfirmView.as_view(template_name='account/user/password_reset_confirm.html',
-    #                                                                                             success_url='password_reset_complete/',
-    #                                                                                             form_class=PwdResetConfirmForm),
-    #      name="password_reset_confirm"),
+    path('password_reset/', csrf_exempt(auth_views.PasswordResetView),{'template_name': 'account/resetpassword.html'}, name='pwdreset'),
+    
+    path('password_reset_submit/',views.ResetPasswordMailer,name='passwordresetsubmit'),
+
+
+
+    path('password_reset_confirm/<uidb64>/<token>',views.ResetPasswordMailerConfirm,name='ResetPasswordMailerConfirm'),
+
+    path('password_reset_complete/',views.ResetPasswordMailerComplete,name='ResetPasswordMailerComplete'),
+
+    
+    
+    # path('password_reset_confirm/<uidb64>/<token>', auth_views.PasswordResetConfirmView.as_view(template_name='account/user/password_reset_form.html',
+    #                                                                                             success_url='/auth/password_reset_complete/'),
+    #                                                                                             name="password_reset_confirm"),
     # path('password_reset/password_reset_email_confirm/',
     #      TemplateView.as_view(template_name="account/user/reset_status.html"), name='password_reset_done'),
     # path('password_reset_confirm/Mg/password_reset_complete/',
@@ -52,5 +64,7 @@ urlpatterns = [
     path('profile/delete_user/', views.delete_user, name='delete_user'),
     path('profile/delete_confirm/', TemplateView.as_view(template_name="account/user/delete_confirm.html"), name='delete_confirmation'),
 
+
+    path('verifysendinblue/',views.verifysendinblue)
 
 ]

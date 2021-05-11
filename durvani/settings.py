@@ -134,7 +134,7 @@ CSRF_USE_SESSIONS = True
 CSRF_COOKIE_HTTPONLY = True
 
 CORS_ORIGIN_ALLOW_ALL = True
-CORS_EXPOSE_HEADERS = ["Content-Type", "X-CSRFToken"]
+CORS_EXPOSE_HEADERS = ["Content-Type", "X-CSRFToken", "Authorization"]
 
 # X_FRAME_OPTIONS = 'SAMEORIGIN'
 REST_FRAMEWORK = {
@@ -199,7 +199,7 @@ USE_TZ = True
 EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
 EMAIL_HOST = 'smtp.gmail.com'
 EMAIL_PORT = 587
-EMAIL_HOST_USER = '@gmail.com'
+EMAIL_HOST_USER = 'nagendrakumar422@gmail.com'
 EMAIL_HOST_PASSWORD = 'hfhbijolsbordwmk'
 EMAIL_USE_TLS = True
 

@@ -19,7 +19,8 @@ import json
 from django.shortcuts import render,redirect,get_object_or_404
 from django.conf import settings
 from django.contrib.sites.shortcuts import get_current_site
-from django.template.loader import render_to_string
+from django.core.mail import EmailMessage
+from django.template.loader import render_to_string,get_template
 from django.utils.encoding import force_bytes, force_text
 from django.utils.http import urlsafe_base64_decode, urlsafe_base64_encode
 from django.http import JsonResponse,HttpResponse
@@ -27,8 +28,9 @@ from django.contrib.auth.models import User
 from django.contrib.auth import authenticate, login,logout
 from django.contrib.auth.decorators import login_required
 from django.views.decorators.http import require_POST
+from django.contrib import messages
 from django.db import connection
-from .forms import RegistrationForm, UserEditForm
+from .forms import RegistrationForm, UserEditForm,PwdResetConfirmForm
 from django.views.decorators.csrf import ensure_csrf_cookie, csrf_protect,csrf_exempt
 from .utils import DatabaseDynamic,SessionHandle
 from quizz.models import Profile,AssignedUsersGroup,ProductGroup,MessageChatter,ContentSaveNotifyer
@@ -42,7 +44,7 @@ from rest_framework.response import Response
 from rest_framework.decorators import api_view, schema,permission_classes
 from rest_framework.permissions import IsAuthenticated,AllowAny
 
-
+from .tokens import account_activation_token
 
 def account_register(request):
     if request.user.is_authenticated:
@@ -69,18 +71,22 @@ def account_register(request):
         return redirect('/admin')
 
 def account_activate(request,uidb64,token):
+    error = "error"
     try:
         uid =force_text(urlsafe_base64_decode(uidb64))
         user = User.objects.get(pk=uid)
+        if user is not None and user.is_active:
+            return redirect('authentication:ResetPasswordMailerComplete')
+
         if user is not None and account_activation_token.check_token(user, token):
             user.is_active = True
             user.save()
             login(request,user)
-            return redirect('quizz:quiz')
+            return redirect('authentication:ResetPasswordMailerComplete')
         else:
-            return JsonResponse(request,{error:'Account Activation is failed'})
+            return render(request, 'account/resetpassworderror.html')
     except Exception as e:
-        return JsonResponse(request,{error:str(e)})
+        return render(request, 'account/resetpassworderror.html')
 
 
 @login_required
@@ -421,7 +427,7 @@ def authChipUserGet(request):
 @csrf_exempt
 def authRegisteraccount(request):
 
-    status = 0
+    status = 200
     message = ""
     
     first_name = (request.POST.get('first_name','')).strip()
@@ -431,41 +437,62 @@ def authRegisteraccount(request):
     password = request.POST.get('password').strip()
     phone = request.POST.get('phone').strip()
     category = request.POST.get('category').strip()
+
+
+     
+    if User.objects.filter(username=username.lower()).exists():
+        status = 400
+        message = "user is already exists"
+        context = {
+        "message":message,
+        "status":status
+        }
+        return JsonResponse(context)
     
 
     registeruser=User.objects.create_user(
-        username=username.lower(),is_active=True,password=password,
-        first_name=first_name.lower(),last_name=last_name.lower())
-    
+        username=username.lower(),is_active=False,password=password,email=email,
+        first_name=first_name.lower(),last_name=last_name.lower())    
+
     user_id = registeruser.id
     try:
         if user_id > 0:
-            Profile.objects.create(user_ptr=User.objects.get(id=int(user_id)),content=category,phone=phone)
+            user = User.objects.get(id=int(user_id))
+            Profile.objects.create(user_ptr=user,content=category,phone=phone)
             message = "Successfully Registered"
             status = 200
 
 
             # Sending Email
 
-            current_site = get_current_site(request)
+            current_site = get_current_site(request)           
 
-            subject = "Activate your Account"
-            message = render_to_string(
-                "email/account_activation_email.html",
-                {
-                    "user": user,
-                    "domain": current_site.domain,
-                    "uid": urlsafe_base64_encode(force_bytes(user.pk)),
-                    "token": account_activation_token.make_token(user),
-                },
+            ctx = {
+                                    
+                "user": user,
+                "domain": current_site.domain,
+                "uid": urlsafe_base64_encode(force_bytes(user.pk)),
+                "token": account_activation_token.make_token(user),
+                
+            }
+            subject = "Activate account - Contentbond"
+            message = get_template('account/account_activation_email.html').render(ctx)
+            msg = EmailMessage(
+                    subject,
+                    message,
+                    'ContentBond <'+settings.EMAIL_HOST_USER+'>',
+                    [email],
             )
-            user.email_user(subject=subject, message=message)
+            msg.content_subtype = "html"  # Main content is now text/html
+            msg.send()
 
 
             # Sending Email
             
     except Exception as e:
         print(e)
+        status = 200
+        message = 'something is went wrong'
 
     context = {
         "message":message,
@@ -505,6 +532,8 @@ def saveUser(request):
                 databaseDynamic = DatabaseDynamic(request)
                 thisdict = {'user_ptr_id':user_id,'content':category,'phone':phone,'id':user_id}
                 profileid = databaseDynamic.insertrecordtodb(catname='quizz_profile',thisdict=thisdict)
+               
+
 
         except Exception as e:
             print('error',e)
@@ -781,3 +810,138 @@ def UserUpdateActivate_Deactivate(request):
             'user_id':user_id
             }
     return Response(response)
+
+@csrf_exempt
+# @api_view(['POST','GET'])
+# @permission_classes([AllowAny,])
+def ResetPasswordMailer(request):
+    # Sending Email
+    # print(request.POST.get('email'))
+    
+    status = 200
+    message = ''
+    try:
+        current_site = get_current_site(request)
+        user = User.objects.get(email=request.POST.get('email'))
+        
+        subject = "Reset your Password"
+        ctx = {
+                "user": user,
+                "domain": current_site.domain,
+                "uid": urlsafe_base64_encode(force_bytes(user.pk)),
+                "token": account_activation_token.make_token(user),
+            }
+        
+        # user.email_user(subject=subject, message=message)
+
+        message = get_template('account/resetpassword.html').render(ctx)
+        msg = EmailMessage(
+                subject,
+                message,
+                'Content Bond <'+settings.EMAIL_HOST_USER+'>',
+                [request.POST.get('email')],
+        )
+        msg.content_subtype = "html"  # Main content is now text/html
+        msg.send()
+
+        context = {
+            'token':account_activation_token.make_token(user),
+            'status':status,
+            'message':'Mail has been sent! Check your email'
+        }
+    except Exception as e:
+        status = 400
+        context = {
+            'token':'',
+            'status':status,
+            'message':str(e)
+        }
+
+    return Response(context)
+
+def ResetPasswordMailerConfirm(request,uidb64,token):
+    error = ""
+    if request.method == 'GET':
+        try:
+            # print(urlsafe_base64_decode(uidb64).decode())            
+            uid =force_text(urlsafe_base64_decode(uidb64))
+            user = User.objects.get(pk=uid)   
+            if user is not None and account_activation_token.check_token(user, token):
+                           
+                context = {
+                    
+                    'uidb64':uidb64,
+                    'token':token,
+                    'uid':uid,
+                    'email':user.email
+                }
+                return render(request,'account/user/password_reset_form.html',context)
+        except Exception as e:
+            context = {
+                'error':str(e)
+            }
+            return JsonResponse(context,safe=False)
+    if request.method == 'POST':
+        import re
+        regex = re.compile('[@_!#$%^&*()<>?/\|}{~:]')
+        request.POST._mutable = True
+        finval = request.POST
+        resetForm = PwdResetConfirmForm(request.POST)
+        try:
+            if resetForm.is_valid():
+                
+                
+                user_email = resetForm.cleaned_data['user_email']
+                user_password1 = resetForm.cleaned_data['new_password1']
+                user_password2 = resetForm.cleaned_data['new_password2']
+
+                if str(user_password1) == str(user_password2):                    
+                    if (len(user_password1) >= 8):                        
+                        if(regex.search(user_password1) == None):
+                            messages.error(request, 'Should be include a special character')                            
+                        else:
+                            
+                            current_site = get_current_site(request)
+                            uid =force_text(urlsafe_base64_decode(uidb64))
+                            user = User.objects.get(pk=uid,email=str(user_email))
+                            if user is not None and account_activation_token.check_token(user, token):
+
+                                user.set_password(user_password1)     
+                                user.save()
+                                ctx = {
+                                    
+                                    "user": user,
+                                    "domain": current_site.domain
+                                    
+                                }
+                                subject = "Successfully Password is Changed"
+                                message = get_template('account/resetpasswordcompleted.html').render(ctx)
+                                msg = EmailMessage(
+                                        subject,
+                                        message,
+                                        'ContentBond <'+settings.EMAIL_HOST_USER+'>',
+                                        [user_email],
+                                )
+                                msg.content_subtype = "html"  # Main content is now text/html
+                                msg.send()
+                                return redirect('authentication:ResetPasswordMailerComplete')
+                    else:
+                        messages.error(request, 'Password is should be minimum 8 characters length')
+
+                else:
+                    messages.error(request, 'Passwords are not same')    
+
+
+                fialurl = '/auth/password_reset_confirm/{}/{}'.format(uidb64,token)
+                return redirect(fialurl)
+            else:
+                return redirect(fialurl)
+        except Exception as e:
+            error = str(e)
+        return JsonResponse({'error':error})
+
+
+def ResetPasswordMailerComplete(request):
+    return render(request,"PasswordChangedStatus.html")
+def verifysendinblue(request):
+    return render(request,'21f1efc09ed4fb65eaa4896bca0f323e.html')

@@ -89,10 +89,23 @@ class PwdResetForm(PasswordResetForm):
         return email
 
 
-class PwdResetConfirmForm(SetPasswordForm):
+class PwdResetConfirmForm(forms.Form):
     new_password1 = forms.CharField(
-        label='New password', widget=forms.PasswordInput(
-            attrs={'class': 'form-control mb-3', 'placeholder': 'New Password', 'id': 'form-newpass'}))
+        label='New password', widget=forms.PasswordInput())
+            # attrs={'class': 'form-control mb-3', 'placeholder': 'New Password', 'id': 'form-newpass'}))
     new_password2 = forms.CharField(
-        label='Repeat password', widget=forms.PasswordInput(
-            attrs={'class': 'form-control mb-3', 'placeholder': 'New Password', 'id': 'form-new-pass2'}))
+        label='Repeat password', widget=forms.PasswordInput())
+            # attrs={'class': 'form-control mb-3', 'placeholder': 'New Password', 'id': 'form-new-pass2'}))
+    user_email = forms.CharField()
+    
+    def update(self,user_password1,user):   
+        try:
+            
+            if user.set_password(user_password1):
+                user.save()
+                return 'success'
+            else:
+                return 'fail'
+        except Exception as e:
+            print('form error',e)
+            return 'fail'
