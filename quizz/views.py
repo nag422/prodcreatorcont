@@ -25,6 +25,8 @@ from rest_framework.pagination import PageNumberPagination
 import datetime
 from dateutil.relativedelta import relativedelta
 
+from .utils import Util
+
 def get_random_code():
     code = str(uuid.uuid4())[:8].replace('-', '').lower()   
     return code
@@ -1461,15 +1463,24 @@ def GetAdminMessages(request):
     totalrecords=0
     msgs = []
 
+    
+
     if request.method == "POST":
+        
+
         request.POST._mutable = True
+        
         request.POST.update({'sender':request.user.id,'receiver':0,'sendertype':'superuser','msgtype':'send',
         'receivertype':request.POST.get('to'),'isgrouped':'yes','msg':request.POST.get('message'),'category':'superuser'})
         msgform = MessageChatterForm(request.POST)
+        
+
         if msgform.is_valid():
             msgform.save()
         else:
             message = msgform.errors
+        
+        
 
         context = {            
             'message':message,
@@ -1551,19 +1562,35 @@ def GetAdminMessagesReply(request):
 
             for items in itemlist:
                 
+                msgormail = request.POST.get('mailormessage')
+
                 request.POST._mutable = True
+                request.POST.pop('mailormessage')
                 receiverdata = MessageChatter.objects.get(id=int(items))
+                
+                if msgormail != 'email':
+                    request.POST.update({'sender':request.user.id,'receiver':int(items),'sendertype':'superuser','msgtype':'reply',
+                    'receivertype':receiverdata.receivertype,'isgrouped':'no','msg':request.POST.get('message'),'category':'superuser'})
 
-                request.POST.update({'sender':request.user.id,'receiver':int(items),'sendertype':'superuser','msgtype':'reply',
-                'receivertype':receiverdata.receivertype,'isgrouped':'no','msg':request.POST.get('message'),'category':'superuser'})
 
+                    msgform = MessageChatterForm(request.POST)
 
-                msgform = MessageChatterForm(request.POST)
+                    if msgform.is_valid():
+                        msgform.save()
+                    else:
+                        message = msgform.errors
+                
 
-                if msgform.is_valid():
-                    msgform.save()
-                else:
-                    message = msgform.errors
+                if msgormail == "emailandmessage":   
+                    user = User.objects.get(pk=int(items.sender))
+                    data = {'email_body': str(request.POST.get('message')), 'to_email': user.email,
+                    'email_subject': 'ContentBond - info'}         
+                    Util.send_email(data)
+                elif msgormail == "email":
+                    user = User.objects.get(pk=int(items.sender))
+                    data = {'email_body': str(request.POST.get('message')), 'to_email': user.email,
+                    'email_subject': 'ContentBond - info'}         
+                    Util.send_email(data)
 
         context = {            
             'message':message,
