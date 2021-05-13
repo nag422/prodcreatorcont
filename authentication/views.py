@@ -857,7 +857,7 @@ def ResetPasswordMailer(request):
             'message':str(e)
         }
 
-    return Response(context)
+    return JsonResponse(context)
 
 def ResetPasswordMailerConfirm(request,uidb64,token):
     error = ""

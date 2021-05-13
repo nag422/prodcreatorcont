@@ -17,6 +17,7 @@ from authentication.utils import DatabaseDynamic
 from .serializers import ProductsSerializer,ProductAssignsSerializer,ProductGroupSerializer,MessageInboxSerializer,MessageChatterSerializer,ContentSaveNotifyerSerializer,ProductRequestSerializer,LikedproductsSerializer,BoughtedproductsSerializer
 from authentication.serializers import CustomUserSerializer
 import uuid
+import math
 from rest_framework.decorators import api_view, schema,permission_classes
 from rest_framework.permissions import IsAuthenticated,AllowAny
 from rest_framework.response import Response
@@ -25,7 +26,7 @@ from rest_framework.pagination import PageNumberPagination
 import datetime
 from dateutil.relativedelta import relativedelta
 
-from .utils import Util
+from .utils import Util,MassMail
 
 def get_random_code():
     code = str(uuid.uuid4())[:8].replace('-', '').lower()   
@@ -1466,21 +1467,46 @@ def GetAdminMessages(request):
     
 
     if request.method == "POST":
-        
+
+        msgormail = request.POST.get('mailormessage')
 
         request.POST._mutable = True
-        
-        request.POST.update({'sender':request.user.id,'receiver':0,'sendertype':'superuser','msgtype':'send',
-        'receivertype':request.POST.get('to'),'isgrouped':'yes','msg':request.POST.get('message'),'category':'superuser'})
-        msgform = MessageChatterForm(request.POST)
+        request.POST.pop('mailormessage')
+
         
 
-        if msgform.is_valid():
-            msgform.save()
+        if msgormail != 'email':
+            request.POST.update({'sender':request.user.id,'receiver':0,'sendertype':'superuser','msgtype':'send',
+            'receivertype':request.POST.get('to'),'isgrouped':'yes','msg':request.POST.get('message'),'category':'superuser'})
+            msgform = MessageChatterForm(request.POST)
+            
+
+            if msgform.is_valid():
+                msgform.save()
+            else:
+                message = msgform.errors
+        
+        if request.POST.get('to') == "creator":
+            togrop = "creator"
         else:
-            message = msgform.errors
-        
-        
+            togrop="producer"
+
+        if msgormail == "emailandmessage":   
+            users = Profile.objects.filter(content = str(togrop)).values()
+            datalist = []
+            end = math.ceil(len(users)/25)
+            for i in range(end):
+                data = (users[i*25:i*25+25])
+                MassMail.send_emails(str(request.POST.get('message')),data)
+        elif msgormail == "email":
+            users = Profile.objects.filter(content = str(togrop)).values()
+            datalist = []
+            end = math.ceil(len(users)/25)
+            for i in range(end):
+                data = (users[i*25:i*25+25])
+                MassMail.send_emails(str(request.POST.get('message')),data)
+                   
+
 
         context = {            
             'message':message,
