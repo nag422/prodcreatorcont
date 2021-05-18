@@ -83,6 +83,7 @@ urlpatterns = [
 
     path('admin/getsellermessages/',views.getsellermessages,name='getsellermessages'),
     path('admin/getbuyermessages/',views.getbuyermessages,name='getbuyermessages'),
+    path('admin/getallgroupsmessages/',views.GetgroupMessages,name='getallgroupsmessages'),
 
     path('admin/getnotifications/',views.NotifyGetter,name='NotifyGetter'),
 

@@ -504,12 +504,14 @@ def authRegisteraccount(request):
 @csrf_exempt
 @api_view(['POST','GET'])
 # @Admin Access
+@permission_classes((AllowAny,))
 def saveUser(request):
     error=False
     message=''
     user_id=''
     posts=''
     GETmethodData = []
+    gropsarray = []
     if request.method == 'POST':
         username=request.POST['username']
         password=request.POST['password']
@@ -553,9 +555,17 @@ def saveUser(request):
             try:
                 userinstance=Profile.objects.get(user_ptr=i['id'])    
                 try:
-                    grp = AssignedUsersGroup.objects.get(user=i['id'])
-                    productinstance = ProductGroup.objects.filter(id=grp.groupid).first()
-                    i.update({'content':userinstance.content,'user_ptr':userinstance.user_ptr_id,'group':productinstance.groupname})
+                    
+                    requser = User.objects.get(id=i['id'])
+                    requsergroups = requser.groups.all()
+                    for every in requsergroups:
+                        gropsarray.append(every.name)
+                    
+
+                    
+
+                    # productinstance = ProductGroup.objects.filter(id=grp.groupid).first()
+                    i.update({'content':userinstance.content,'user_ptr':userinstance.user_ptr_id,'group':gropsarray})
                     # print('grop find')
                 except:
                     # print(userinstance.user_ptr_id)
@@ -563,6 +573,7 @@ def saveUser(request):
             except:
                 pass
             GETmethodData.append(i)
+            gropsarray = []
         response={
                 'error':error,
                 'message':message,

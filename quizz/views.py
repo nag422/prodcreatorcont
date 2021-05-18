@@ -2,7 +2,7 @@ from django.shortcuts import render,get_object_or_404
 from django.http import HttpResponse,JsonResponse
 from django.middleware.csrf import get_token
 from quizz.models import Profile,Books,Content,ProductGroup,Likedproducts,Boughtedproducts,AssignedUsersGroup,ProductAssigns,MessageInbox,ContentSaveNotifyer,MessageChatter,MessageRequest,ProductRequest,Contentcategorynumbertoname
-from django.contrib.auth.models import User
+from django.contrib.auth.models import User, Group, Permission
 from django.views.generic.base import TemplateView,RedirectView
 from django.views.generic.detail import DetailView
 from django.views.generic.list import ListView
@@ -933,45 +933,121 @@ def getProductsallbaggedbyuserid(request):
     }
     return JsonResponse(response)
 
+# @csrf_exempt
+# def createGroup(request):
+#     group = []
+#     error =False
+#     message=''
+#     status=200
+#     dataresp = request.POST
+
+#     form = GroupForm(dataresp)
+#     if form.is_valid:
+#         # instance = form.save(commit=False)
+#         # grp = ProductGroup(groupname=dataresp['groupname'],rule=dataresp['rule'])
+#         # grp.save()
+#         databaseDynamic = DatabaseDynamic(request)
+        
+#         grplastid = ProductGroup.objects.last()
+
+#         if grplastid is not None:
+#             primaryid = grplastid.id + 1
+#         else:
+#             primaryid = 1
+        
+        
+#         thisdict = {'groupname':dataresp['groupname'],'rule':dataresp['rule'],'id':primaryid}
+#         groupid = databaseDynamic.insertrecordtodb(catname='quizz_productgroup',thisdict=thisdict)
+#         if (groupid):
+#             status = 200
+#         else:
+#             status = 400
+        
+
+#     response = {
+#         'error':error,
+#         'message':message,
+#         'status':status
+#     }
+#     return JsonResponse(response)
+
 @csrf_exempt
 def createGroup(request):
     group = []
     error =False
     message=''
-    status=200
-    dataresp = request.POST
+    status=200    
+    groupname = request.POST.get('groupname')    
+    
+    new_group, created = Group.objects.get_or_create(name = groupname)
 
-    form = GroupForm(dataresp)
-    if form.is_valid:
-        # instance = form.save(commit=False)
-        # grp = ProductGroup(groupname=dataresp['groupname'],rule=dataresp['rule'])
-        # grp.save()
-        databaseDynamic = DatabaseDynamic(request)
+    if created:
+        message = "Success! group created" + str(groupname)
         
-        grplastid = ProductGroup.objects.last()
+    else:
+        error = True
+        status=400
+        message = "Error! group is already existed" + str(groupname)
 
-        if grplastid is not None:
-            primaryid = grplastid.id + 1
-        else:
-            primaryid = 1
+    # user = User.objects.get(username = "nagkum")
+    # # us = user.groups.values_list('name',flat = True)
+    # us = user.groups.all()
+
+    # for i in  (us):
+    #     print(i.id)
+    #     print(i.name)
         
-        
-        thisdict = {'groupname':dataresp['groupname'],'rule':dataresp['rule'],'id':primaryid}
-        groupid = databaseDynamic.insertrecordtodb(catname='quizz_productgroup',thisdict=thisdict)
-        if (groupid):
-            status = 200
-        else:
-            status = 400
-        
+
 
     response = {
+
         'error':error,
         'message':message,
         'status':status
     }
     return JsonResponse(response)
 
-    
+# @csrf_exempt
+# @api_view(['GET','POST'])
+# # @ Admin Access
+# def assignedtogroup(request):
+#     group = []
+#     error =False
+#     message=''
+#     status=0
+#     dataresp = request.POST
+
+#     itemlist = (request.POST.get('itemlist')).split(',')    
+#     if itemlist is not None:
+#         for items in itemlist:
+#             try:
+#                 AssignedUsersGroup.objects.get(user=int(items),groupid=dataresp.get('groupname')).delete()
+#             except Exception as e:
+#                 if items is not None and dataresp.get('groupname') is not None:
+
+#                     AssignedUsersGroup(user=int(items),groupid=dataresp.get('groupname')).save()
+
+#                     message = 'Success'
+#                     status=200
+
+#                 message = 'Failed'
+#                 status=400
+            
+                    
+            
+#     else:
+#         error =True
+#         message = 'Something is went wrong'
+#         status=400        
+
+        
+
+#     response = {
+#         'error':error,
+#         'message':message,
+#         'status':status
+#     }
+#     return JsonResponse(response)
 
 @csrf_exempt
 @api_view(['GET','POST'])
@@ -981,26 +1057,30 @@ def assignedtogroup(request):
     error =False
     message=''
     status=0
+    failcounter = 0
+    successcounter = 0
     dataresp = request.POST
 
     itemlist = (request.POST.get('itemlist')).split(',')    
     if itemlist is not None:
         for items in itemlist:
-            try:
-                AssignedUsersGroup.objects.get(user=int(items),groupid=dataresp.get('groupname')).delete()
-            except Exception as e:
-                if items is not None and dataresp.get('groupname') is not None:
+            user = User.objects.get(pk=int(items))
+            group = Group.objects.get(pk=dataresp.get('groupname'))
+            isexist = user.groups.filter(name = group).exists()
 
-                    AssignedUsersGroup(user=int(items),groupid=dataresp.get('groupname')).save()
+            if isexist:
+                user.groups.remove(group)
+                failcounter += 1
+            else:
+                user.groups.add(group)
+                successcounter += 1
 
-                    message = 'Success'
-                    status=200
-
-                message = 'Failed'
-                status=400
             
-                    
-            
+
+        message = 'Successfully Assigned'
+        status=200
+
+         
     else:
         error =True
         message = 'Something is went wrong'
@@ -1011,9 +1091,11 @@ def assignedtogroup(request):
     response = {
         'error':error,
         'message':message,
-        'status':status
+        'status':status,
+        'successcounter':successcounter,
+        'failcounter':failcounter
     }
-    return JsonResponse(response)
+    return JsonResponse(response)    
 
 @csrf_exempt
 def getAllgroups(request):
@@ -1023,7 +1105,9 @@ def getAllgroups(request):
     status=200
     
     
-    grps = ProductGroup.objects.all()
+    grps = Group.objects.all()
+
+    print(grps)
     
     for every in grps.values():
         # every['_id'] = str(every['_id'])
@@ -1032,10 +1116,11 @@ def getAllgroups(request):
         groups.append(every)
 
     context = {
-        'error' : False,
+        'error' : error,
         'message':'Successfully groups loaded',
         'status':200,
-        'groups':groups
+        'groups':groups,
+        'totalrecords': Group.objects.all().count()
     }
     return JsonResponse(context)
 
@@ -1049,7 +1134,7 @@ def deleteGroups(request):
     user_id=''
     itemlist = (request.POST.get('itemlist')).split(',')    
     if itemlist is not None:
-        ProductGroup.objects.filter(id__in=itemlist).delete()
+        Group.objects.filter(id__in=itemlist).delete()
     response={
             'error':error,
             'message':message,
@@ -1273,6 +1358,7 @@ def UserProductSave(request):
     return JsonResponse(context)
 
 
+
 @api_view(['POST'])
 @permission_classes([AllowAny,])
 def save_product_by_admin(request):
@@ -1366,15 +1452,23 @@ def GroupProductSave(request):
     action = request.POST.get('action').strip()
     groupdata = request.POST.get('groupdata')
     productdata = request.POST.getlist('productdata')
+    splittedproduct = productdata.split(',')
+    splittedgroup = groupdata.split(',')
     
-    
+    if len(splittedgroup) > 0 :
+        for everygroup in splittedgroup:
 
-    grouptemp = ProductGroup.objects.get(pk=int(groupdata))
-    
-  
-    for productid in (productdata[0].split(',')):
-        prodtemp = Content.objects.get(pk=int(productid))
-        grouptemp.products.add(prodtemp)
+            grouptemp = Group.objects.get(pk=int(everygroup))
+            
+        
+            for productid in splittedproduct:
+                if action == "assign":
+                    prodtemp = Content.objects.get(pk=int(productid))
+                    grouptemp.products.add(prodtemp)
+                else:
+                    prodtemp = Content.objects.get(pk=int(productid))
+                    grouptemp.products.remove(prodtemp)
+
   
 
     # print(userdata,productdata)
@@ -1526,6 +1620,12 @@ def GetAdminMessages(request):
             messagesinstance1 = MessageChatter.objects.filter(isgrouped='yes')
             messagesinstance = paginator.paginate_queryset(messagesinstance1, request)
             serializer = MessageChatterSerializer(messagesinstance,many=True)
+        
+        elif request_query == "groupmessages":
+            totalrecords = MessageChatter.objects.filter(isgrouped='yes',receivertype='usergroup').count()
+            messagesinstance1 = MessageChatter.objects.filter(isgrouped='yes',receivertype='usergroup')
+            messagesinstance = paginator.paginate_queryset(messagesinstance1, request)
+            serializer = MessageChatterSerializer(messagesinstance,many=True)            
 
         elif request_query == "requests":
             totalrecords = ProductRequest.objects.all().count()
@@ -1555,7 +1655,10 @@ def GetAdminMessages(request):
             for every in serializer.data:
                 sendername = User.objects.get(id=int(every['sender'])).username
                 try:
-                    receiverrname = User.objects.get(id=int(every['receiver'])).username
+                    if request_query == "groupmessages":
+                        receiverrname = every['category']
+                    else:
+                        receiverrname = User.objects.get(id=int(every['receiver'])).username
                 except:
                     receiverrname = "----"
 
@@ -1865,3 +1968,36 @@ def getbuyermessages(request):
 #         }
 
 #     return Response(context)
+
+# Group Messages
+@csrf_exempt
+@api_view(['POST','GET'])
+@permission_classes([AllowAny,])
+def GetgroupMessages(request):
+    message = "Success"
+    status=200
+    msgs = []
+    totalrecords=0
+
+    if request.method == "POST":
+        request.POST._mutable = True
+        message = (request.POST.get('message'))
+        mailormsg = (request.POST.get('mailormessage'))
+        to = (request.POST.get('to')).split(',')
+        for everygroup in to:
+            grpname = Group.objects.get(pk=int(everygroup))            
+            request.POST.update({'sender':request.user.id,'receiver':0,'sendertype':'superuser','msgtype':'send',
+            'receivertype':'usergroup','isgrouped':'yes','msg':message,'category':grpname})
+            msgform = MessageChatterForm(request.POST)
+            if msgform.is_valid():
+                msgform.save()
+            else:
+                message = msgform.errors
+                status = 200
+
+        context = {            
+            'message':message,
+            'status':status
+        }
+        return JsonResponse(context)    
+    
