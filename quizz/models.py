@@ -175,11 +175,20 @@ class ProductRequest(models.Model):
 #     except Exception as e:
 #         print('instance erro',e)
 
+# class ProductManager(models.Manager):
+#     # def get_queryset(self):
+#     #     return super(ProductManager, self).get_queryset().filter(groupname=groupname)
+#     def get_byname(self,groupname):
+#         return self.filter(groupname = groupname)
+
+
 class ProductGroup(models.Model):
     id=models.AutoField(primary_key=True)
     groupname = models.CharField(max_length=255)
     rule = models.CharField(max_length=255)
     products=models.ManyToManyField(Content, blank=True, related_name='products')
+    # objects = models.Manager()
+    # products_objects = ProductManager()
     
     def get_products(self):
         return self.products.all()

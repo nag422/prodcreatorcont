@@ -664,6 +664,51 @@ def getProductsallbyUsers(request):
         'totalrecords':totalrecords
     }
     return JsonResponse(response)
+
+@csrf_exempt
+@api_view(['GET','POST'])
+def getgroupProductsallbyUsers(request):
+    product = []
+    error=False,
+    status=200
+    totalrecords=0
+    gorupgrabbder = []
+
+    paginator = PageNumberPagination()
+    paginator.page_size = 8
+    paginator.page_query_param = 'page'
+
+    get_usergroup_of_user = list(request.user.groups.values_list(flat=True))
+
+    for i in get_usergroup_of_user:
+        gorupgrabbder.append(i)
+
+    totalrecords = ProductGroup.products.through.objects.filter(productgroup__id__in=gorupgrabbder).count()
+    groupbyProducts = ProductGroup.products.through.objects.filter(productgroup__id__in=gorupgrabbder)
+    # print(groupbyProducts.get_products())
+    contentinstance = paginator.paginate_queryset(groupbyProducts, request)
+    # serializer = ProductGroupSerializer(contentinstance,many=True)
+    # print(serializer.data)
+    for i in contentinstance:
+        contentvalues = Content.objects.filter(id=i.content_id)
+        for j in contentvalues.values():          
+
+            dt = Likedproducts.objects.filter(post=j['id'],user=request.user).exists()
+            df = Boughtedproducts.objects.filter(post=j['id'],user=request.user).exists()
+            
+            j['isliked'] = dt
+            j['isfavored'] = df
+            product.append(dict(j))
+    
+    response = {
+        'obs':(product) if len(product) > 0  else [],
+        'status':200,
+        'error':error,
+        'totalrecords':totalrecords
+    }
+    return JsonResponse(response)
+
+
 # Admin Copy
 @csrf_exempt
 @api_view(['GET','POST'])
@@ -1451,10 +1496,10 @@ def GroupProductSave(request):
     products =[]
     action = request.POST.get('action').strip()
     groupdata = request.POST.get('groupdata')
-    productdata = request.POST.getlist('productdata')
+    productdata = request.POST.get('productdata')
     splittedproduct = productdata.split(',')
     splittedgroup = groupdata.split(',')
-    
+    fialprod=[]
     if len(splittedgroup) > 0 :
         for everygroup in splittedgroup:
 
@@ -1464,10 +1509,19 @@ def GroupProductSave(request):
             for productid in splittedproduct:
                 if action == "assign":
                     prodtemp = Content.objects.get(pk=int(productid))
-                    grouptemp.products.add(prodtemp)
+                    new_productgroup, created = ProductGroup.objects.get_or_create(groupname=grouptemp.name,rule=grouptemp.id)
+                    if created:
+                        createprod = ProductGroup.objects.get(groupname = new_productgroup)
+                        createprod.products.add(prodtemp)
+                    else:
+                        try:
+                            new_productgroup.products.add(prodtemp)
+                        except:
+                            fialprod.append(prodtemp.id)
+
                 else:
                     prodtemp = Content.objects.get(pk=int(productid))
-                    grouptemp.products.remove(prodtemp)
+                    ProductGroup.products.remove(prodtemp)
 
   
 
@@ -1476,7 +1530,8 @@ def GroupProductSave(request):
     context = {
         "message":message,
         "status":status,
-        "action":action
+        "action":action,
+        "assignfailed":(fialprod)
     }
     return JsonResponse(context)    
 
@@ -1808,6 +1863,21 @@ def getsellermessages(request):
             messagesinstance1 = MessageChatter.objects.filter(isgrouped='yes',receivertype='creator')
             messagesinstance = paginator.paginate_queryset(messagesinstance1, request)
             serializer = MessageChatterSerializer(messagesinstance,many=True)
+        if request_query == "groupmessages":
+            msggrabber = []
+            get_usergroup_of_user = list(request.user.groups.values_list('name',flat=True))
+            for thing in get_usergroup_of_user:
+                msggrabber.append(thing)
+
+            if len(msggrabber) > 0:
+                totalrecords = MessageChatter.objects.filter(isgrouped='yes',receivertype='usergroup',category__in=msggrabber).count()
+                messagesinstance1 = MessageChatter.objects.filter(isgrouped='yes',receivertype='usergroup',category__in=msggrabber)
+            else:
+                totalrecords = MessageChatter.objects.filter(isgrouped='yes',receivertype='creator').count()
+                messagesinstance1 = MessageChatter.objects.filter(isgrouped='yes',receivertype='creator')
+
+            messagesinstance = paginator.paginate_queryset(messagesinstance1, request)
+            serializer = MessageChatterSerializer(messagesinstance,many=True)    
         elif request_query == "inbox":
            
             # paginator.page = (int(request.GET.get('currentpage',1)))+1
@@ -1840,7 +1910,10 @@ def getsellermessages(request):
             for every in serializer.data:
                 sendername = User.objects.get(id=int(every['sender'])).username
                 try:
-                    receiverrname = User.objects.get(id=int(every['receiver'])).username
+                    if request_query == "groupmessages":
+                        receiverrname = every['category']
+                    else:
+                        receiverrname = User.objects.get(id=int(every['receiver'])).username
                 except:
                     receiverrname = "----"
 
@@ -1884,6 +1957,7 @@ def getbuyermessages(request):
 
     if request.method == "GET":
         request_query = request.GET.get('q')
+        msggrabber = []
 
         paginator = PageNumberPagination()
 
@@ -1896,6 +1970,23 @@ def getbuyermessages(request):
             messagesinstance1 = MessageChatter.objects.filter(isgrouped='yes',receivertype='producer')
             messagesinstance = paginator.paginate_queryset(messagesinstance1, request)
             serializer = MessageChatterSerializer(messagesinstance,many=True)    
+        
+        if request_query == "groupmessages":
+            msggrabber = []
+            get_usergroup_of_user = list(request.user.groups.values_list('name',flat=True))
+            for thing in get_usergroup_of_user:
+                msggrabber.append(thing)
+
+            if len(msggrabber) > 0:
+                totalrecords = MessageChatter.objects.filter(isgrouped='yes',receivertype='usergroup',category__in=msggrabber).count()
+                messagesinstance1 = MessageChatter.objects.filter(isgrouped='yes',receivertype='usergroup',category__in=msggrabber)
+            else:
+                totalrecords = MessageChatter.objects.filter(isgrouped='yes',receivertype='producer').count()
+                messagesinstance1 = MessageChatter.objects.filter(isgrouped='yes',receivertype='producer')
+
+            messagesinstance = paginator.paginate_queryset(messagesinstance1, request)
+            serializer = MessageChatterSerializer(messagesinstance,many=True)    
+
         elif request_query == "inbox":
            
             # paginator.page = (int(request.GET.get('currentpage',1)))+1
@@ -1928,7 +2019,10 @@ def getbuyermessages(request):
             for every in serializer.data:
                 sendername = User.objects.get(id=int(every['sender'])).username
                 try:
-                    receiverrname = User.objects.get(id=int(every['receiver'])).username
+                    if request_query == "groupmessages":
+                        receiverrname = every['category']
+                    else:
+                        receiverrname = User.objects.get(id=int(every['receiver'])).username
                 except:
                     receiverrname = "----"
 
@@ -2000,4 +2094,38 @@ def GetgroupMessages(request):
             'status':status
         }
         return JsonResponse(context)    
+
+@api_view(['POST','GET'])
+@permission_classes([AllowAny,])
+def testpurpose(request):
+    # val = ProductGroup.related.objects.all()
+    # print(val)
+    # all_categories = Content.objects.filter(
+    # id__in=ProductGroup.products.through.objects.all(
+    #     # productgroup__in=[2]
+    # ).values()
     
+    # )
+    paginator = PageNumberPagination()
+
+    paginator.page_size = int(request.GET.get('perpages',1))
+    paginator.page_query_param = 'currentpage'
+
+    user = User.objects.get(username="nagendra")
+    get_usergroup_of_user = list(user.groups.values_list(flat=True))
+    gorupgrabbder = []
+    for i in get_usergroup_of_user:
+        gorupgrabbder.append(i)
+
+    # all_categories = ProductGroup.products.through.objects.all()
+    # messagesinstance = paginator.paginate_queryset(all_categories, request)
+    # cnt = ProductGroup.products.through.objects.filter(productgroup__id__in=[1]).count()
+    # print(messagesinstance)
+
+    totalrecords = ProductGroup.products.through.objects.filter(productgroup__id__in=gorupgrabbder).count()
+    groupbyProducts = ProductGroup.products.through.objects.filter(productgroup__id__in=gorupgrabbder)
+    # print(groupbyProducts.get_products())
+    # contentinstance = paginator.paginate_queryset(groupbyProducts, request)
+    print(groupbyProducts)
+    
+    return Response({'done':'cnt'})

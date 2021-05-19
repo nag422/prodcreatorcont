@@ -37,6 +37,8 @@ urlpatterns = [
     path('admin/getProductsall/',views.getProductsall,name='getProductsall'),
     path('admin/getproductsofcreator/',views.getProductsofcreator,name='getProductsofcreator'),
     path('admin/getproductsallbyusers/',views.getProductsallbyUsers,name='getProductsallbyUsers'),
+    path('admin/getgroupproductsallbyusers/',views.getgroupProductsallbyUsers,name='getgroupProductsallbyUsers'),
+    
 
     path('admin/getproductbyid/',views.getProductById,name='getProductById'),
 
@@ -92,8 +94,8 @@ urlpatterns = [
 
     path('admin/dashboardview/',views.dashboardView,name='dashboardview'),
     path('admin/dashboardviewseller/',views.dashboardviewsellerView,name='dashboardviewseller'),
-    path('admin/dashboardviewbuyerview/',views.dashboardviewbuyerView,name='dashboardviewbuyerView')
+    path('admin/dashboardviewbuyerview/',views.dashboardviewbuyerView,name='dashboardviewbuyerView'),
 
-    
+    path('admin/testpurpose/',views.testpurpose,name='testpurpose')
     
 ]

@@ -16,11 +16,12 @@ class ProductAssignsSerializer(serializers.ModelSerializer):
         fields="__all__"
 
 class ProductGroupSerializer(serializers.ModelSerializer):
-    products = ProductsSerializer(many=True)
+    # products = ProductsSerializer(many=True)
     class Meta:
         model=ProductGroup
-        fields=["id","groupname","rule","products"]
-        depth = 2
+        # fields=["id","groupname","rule","products"]
+        # depth = 2
+        fields="__all__"
 
 class MessageInboxSerializer(serializers.ModelSerializer):
     class Meta:
